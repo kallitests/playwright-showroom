@@ -1,0 +1,223 @@
+================================================================================
+  PLAYWRIGHT SHOWROOM — PROJECT SPECIFICATION
+  Target site: https://www.saucedemo.com
+  Stack: Playwright CLI + Playwright MCP
+================================================================================
+
+PROJECT GOAL
+------------
+A showcase repository demonstrating real-world Playwright usage:
+  - Playwright CLI for UI and API testing
+  - Playwright MCP for AI-assisted browser automation
+  - Smoke tests on the most critical paths
+  - End-to-end tests covering full user journeys
+  - Non-regression tests to catch regressions over time
+  - API-level tests (mocking, intercepting, validating responses)
+
+--------------------------------------------------------------------------------
+SITE OVERVIEW — SAUCEDEMO.COM
+--------------------------------------------------------------------------------
+
+URL         : https://www.saucedemo.com
+Description : A fake e-commerce store built for automation testing practice.
+              No real payments, no real accounts — safe to automate freely.
+
+TEST USERS  :
+  Username                  | Password        | Behavior
+  --------------------------|-----------------|----------------------------------
+  standard_user             | secret_sauce    | Normal user — everything works
+  locked_out_user           | secret_sauce    | Cannot log in (error shown)
+  problem_user              | secret_sauce    | Images broken, bugs everywhere
+  performance_glitch_user   | secret_sauce    | Slow page loads
+  error_user                | secret_sauce    | Some actions throw errors
+  visual_user               | secret_sauce    | Visual differences vs standard
+
+KEY PAGES   :
+  /            → Login page
+  /inventory   → Product list (after login)
+  /cart        → Shopping cart
+  /checkout-step-one.html   → Checkout: personal info
+  /checkout-step-two.html   → Checkout: order summary
+  /checkout-complete.html   → Checkout: confirmation
+
+--------------------------------------------------------------------------------
+TEST STRATEGY
+--------------------------------------------------------------------------------
+
+1. SMOKE TESTS (tests/smoke/)
+------------------------------
+Priority  : CRITICAL — run on every commit, fast (<60s total)
+Goal      : Verify the app is alive and the most critical paths work
+
+  smoke/auth.spec.ts
+    ✓ Login with valid credentials (standard_user)
+    ✓ Login with invalid password shows error
+    ✓ Login with empty fields shows validation error
+    ✓ Locked-out user sees specific error message
+    ✓ Successful login redirects to /inventory
+    ✓ Logout works and redirects to login page
+
+  smoke/inventory.spec.ts
+    ✓ Product list loads after login
+    ✓ At least one product is visible
+    ✓ Add to cart button is clickable
+    ✓ Cart badge updates after adding a product
+
+2. END-TO-END TESTS (tests/e2e/)
+----------------------------------
+Priority  : HIGH — run on pull requests and staging deployments
+Goal      : Full user journeys from login to order completion
+
+  e2e/checkout-flow.spec.ts
+    ✓ Complete purchase: login → add product → checkout → confirm
+    ✓ Add multiple products and verify cart count
+    ✓ Remove a product from cart
+    ✓ Continue shopping from cart page
+    ✓ Checkout form validation (missing first name, last name, zip)
+    ✓ Order summary shows correct product and price
+    ✓ Checkout complete page shows confirmation message
+
+  e2e/sorting.spec.ts
+    ✓ Sort products A→Z (default)
+    ✓ Sort products Z→A
+    ✓ Sort products by price low→high
+    ✓ Sort products by price high→low
+
+  e2e/product-detail.spec.ts
+    ✓ Click product name opens detail page
+    ✓ Product detail shows name, description, price
+    ✓ Add to cart from detail page updates cart badge
+    ✓ Back button returns to inventory
+
+3. NON-REGRESSION TESTS (tests/regression/)
+---------------------------------------------
+Priority  : MEDIUM — run nightly or before releases
+Goal      : Catch regressions introduced by code changes
+
+  regression/visual.spec.ts
+    ✓ Login page matches snapshot
+    ✓ Inventory page matches snapshot (standard_user)
+    ✓ Cart page matches snapshot
+    ✓ Checkout step-one page matches snapshot
+
+  regression/user-behaviors.spec.ts
+    ✓ problem_user: images fail to load (known bug, asserted)
+    ✓ performance_glitch_user: login takes longer than standard user
+    ✓ standard_user vs problem_user: product images differ
+
+  regression/cart-persistence.spec.ts
+    ✓ Cart items persist after page reload
+    ✓ Cart is empty after logout and new login
+
+4. API / NETWORK TESTS (tests/api/)
+--------------------------------------
+Priority  : HIGH — run on every commit alongside smoke tests
+Goal      : Intercept and validate network requests made by the app
+
+  api/intercept.spec.ts
+    ✓ Login triggers no unexpected network errors (console monitoring)
+    ✓ Intercept and mock inventory response with custom products
+    ✓ Abort network request and verify graceful error handling
+    ✓ Validate request payload on checkout form submission
+    ✓ Monitor and assert no 4xx/5xx responses during checkout flow
+
+--------------------------------------------------------------------------------
+PLAYWRIGHT MCP SCENARIOS (docs/mcp-examples/)
+--------------------------------------------------------------------------------
+
+What is Playwright MCP?
+  An MCP (Model Context Protocol) server that exposes Playwright's browser
+  automation capabilities to AI assistants (Claude, etc.).
+  The AI can navigate, click, fill forms, and extract data using natural language.
+
+MCP scenarios to demonstrate:
+  - Navigate to SauceDemo and log in as standard_user
+  - Take a screenshot of the inventory page
+  - Add the most expensive product to cart
+  - Extract all product names and prices as JSON
+  - Fill the checkout form with test data
+  - Assert the order confirmation message
+
+--------------------------------------------------------------------------------
+ADDITIONAL ELEMENTS TO ADD (suggestions)
+--------------------------------------------------------------------------------
+
+CI/CD
+  - .github/workflows/ci.yml
+    → Run smoke + API tests on every push
+    → Run full suite on pull_request to main
+    → Upload HTML report as artifact
+
+FIXTURES & UTILITIES
+  - fixtures/auth.fixture.ts     → Pre-authenticated browser context (skip login)
+  - utils/helpers.ts             → Reusable selectors, wait helpers
+  - utils/test-data.ts           → Centralized test users and product data
+
+CONFIGURATION
+  - playwright.config.ts         → Multi-project: chromium, firefox, webkit
+  - .env.example                 → Environment variables template
+  - tsconfig.json                → TypeScript configuration
+
+REPORTING
+  - HTML report (built-in Playwright)
+  - Allure report integration (optional)
+  - Slack notification on failure (via webhook in CI)
+
+PAGE OBJECT MODEL (POM)
+  - pages/LoginPage.ts           → Encapsulate login selectors and actions
+  - pages/InventoryPage.ts       → Encapsulate product list interactions
+  - pages/CartPage.ts            → Cart actions
+  - pages/CheckoutPage.ts        → Multi-step checkout
+
+BONUS IDEAS
+  - Accessibility tests with @axe-core/playwright (a11y)
+  - Performance timing: measure login and inventory load times
+  - Multi-browser matrix in README (Chromium / Firefox / WebKit results)
+  - Codegen example: show playwright codegen saucedemo.com output
+  - Trace viewer usage: show how to open trace.zip for debugging
+  - Video recording on failure: show config and example video
+
+--------------------------------------------------------------------------------
+FOLDER STRUCTURE
+--------------------------------------------------------------------------------
+
+playwright-showroom/
+├── .github/
+│   └── workflows/
+│       └── ci.yml                  # GitHub Actions CI pipeline
+├── docs/
+│   └── mcp-examples.md             # Playwright MCP usage guide
+├── fixtures/
+│   └── auth.fixture.ts             # Authenticated context fixture
+├── pages/                          # Page Object Model
+│   ├── LoginPage.ts
+│   ├── InventoryPage.ts
+│   ├── CartPage.ts
+│   └── CheckoutPage.ts
+├── tests/
+│   ├── smoke/
+│   │   ├── auth.spec.ts            # Critical auth smoke tests
+│   │   └── inventory.spec.ts       # Critical inventory smoke tests
+│   ├── e2e/
+│   │   ├── checkout-flow.spec.ts   # Full purchase journey
+│   │   ├── sorting.spec.ts         # Product sorting scenarios
+│   │   └── product-detail.spec.ts  # Product detail page tests
+│   ├── regression/
+│   │   ├── visual.spec.ts          # Screenshot comparison tests
+│   │   ├── user-behaviors.spec.ts  # Different user type behaviors
+│   │   └── cart-persistence.spec.ts
+│   └── api/
+│       └── intercept.spec.ts       # Network interception tests
+├── utils/
+│   ├── helpers.ts                  # Shared utilities
+│   └── test-data.ts                # Centralized test data
+├── .env.example                    # Environment variables template
+├── playwright.config.ts            # Playwright configuration
+├── tsconfig.json                   # TypeScript config
+├── package.json
+├── SPEC.txt                        # This file
+└── README.md                       # Full setup and usage guide
+
+================================================================================
+END OF SPEC
+================================================================================

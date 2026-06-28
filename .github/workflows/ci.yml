@@ -1,0 +1,74 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Job 1: Smoke + API tests — run on every push (fast, ~2 min)
+  # ---------------------------------------------------------------------------
+  smoke-and-api:
+    name: Smoke & API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers (Chromium only for smoke)
+        run: npx playwright install chromium --with-deps
+
+      - name: Run smoke tests
+        run: npx playwright test tests/smoke/ tests/api/ --project=chromium
+
+      - name: Upload smoke test report
+        uses: actions/upload-artifact@v4
+        if: always() # Upload even if tests fail
+        with:
+          name: smoke-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Full E2E suite — run on pull requests (multi-browser, ~10 min)
+  # ---------------------------------------------------------------------------
+  full-suite:
+    name: Full E2E Suite (multi-browser)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs: smoke-and-api # Only run if smoke tests pass
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install all Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run full test suite
+        run: npx playwright test
+
+      - name: Upload full test report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: full-report
+          path: playwright-report/
+          retention-days: 14

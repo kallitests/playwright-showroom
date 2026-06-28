@@ -1,0 +1,21 @@
+{
+  "name": "playwright-showroom",
+  "version": "1.0.0",
+  "description": "Playwright CLI + MCP showroom using SauceDemo — smoke, e2e, regression, API tests",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test tests/smoke/",
+    "test:e2e": "playwright test tests/e2e/",
+    "test:regression": "playwright test tests/regression/",
+    "test:api": "playwright test tests/api/",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "codegen": "playwright codegen https://www.saucedemo.com"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  }
+}

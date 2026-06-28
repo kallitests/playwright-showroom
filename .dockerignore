@@ -1,0 +1,33 @@
+# =============================================================================
+# .dockerignore — files excluded from the Docker build context
+# =============================================================================
+# Docker sends all files in the build context to the Docker daemon.
+# Excluding unnecessary files makes builds faster and images smaller.
+# =============================================================================
+
+# Node modules — reinstalled inside the container via npm ci
+node_modules/
+
+# Test output — generated at runtime, not needed in the image
+playwright-report/
+test-results/
+
+# Git history — not needed inside the container
+.git/
+.gitignore
+
+# Environment files — never bake secrets into an image
+.env
+.env.local
+
+# Editor config — not needed at runtime
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# TypeScript build output — tests run from source via ts-node
+dist/
