@@ -1,0 +1,32 @@
+[WARNING] Slow test detected: "cart flow" took 12.4s
+[ERROR] tests/login.spec.ts:42
+TimeoutError: locator.click: Timeout 30000ms exceeded.
+=========================== logs ===========================
+waiting for locator('#submit-btn') to be visible
+============================================================
+    at LoginPage.submit (tests/pages/login.page.ts:18)
+    at Object.<anonymous> (tests/login.spec.ts:42:5)
+
+[WARNING] Retrying test "checkout flow" (attempt 2/3)
+[ERROR] tests/checkout.spec.ts:87
+Error: expect(received).toBe(expected)
+Expected: 200
+Received: 500
+    at Object.<anonymous> (tests/checkout.spec.ts:87:22)
+
+[ERROR] tests/cart.spec.ts:55
+Error: locator.fill: Element is not attached to the DOM.
+=========================== logs ===========================
+waiting for locator('input[name="promo-code"]')
+============================================================
+    at CartPage.applyPromo (tests/pages/cart.page.ts:33)
+    at Object.<anonymous> (tests/cart.spec.ts:55:5)
+
+[WARNING] Test "search flow" flaky, passed on retry
+[ERROR] tests/search.spec.ts:110
+Error: strict mode violation: locator('.result-item') resolved to 3 elements
+    at Object.<anonymous> (tests/search.spec.ts:110:8)
+
+[ERROR] tests/profile.spec.ts:29
+Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/profile
+    at Object.<anonymous> (tests/profile.spec.ts:29:5)
