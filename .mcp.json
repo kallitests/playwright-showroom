@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@0.0.83",
+        "--isolated",
+        "--test-id-attribute=data-test",
+        "--output-dir=mcp-output",
+        "--save-session"
+      ]
+    }
+  }
+}

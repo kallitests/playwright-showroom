@@ -1,73 +1,49 @@
 // =============================================================================
-// pages/LoginPage.ts — Page Object Model for the SauceDemo login page
-// =============================================================================
-// The Page Object Model (POM) pattern encapsulates all selectors and actions
-// for a given page in one class. Benefits:
-//   - Selectors are defined ONCE — change in one place, fixed everywhere
-//   - Tests read like plain English: loginPage.login(user)
-//   - Easier to maintain when the UI changes
+// pages/LoginPage.ts — Login screen
 // =============================================================================
 
-import { Page, Locator, expect } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
+import type { Credentials } from '../utils/test-data';
 
 export class LoginPage {
-  // Store a reference to the Playwright Page object
-  readonly page: Page;
-
-  // ---------------------------------------------------------------------------
-  // Locators
-  // ---------------------------------------------------------------------------
-  // Each locator targets a specific element using data-test attributes.
-  // data-test attributes are preferred over CSS classes or text because:
-  //   - They don't change when designers restyle the page
-  //   - They clearly communicate "this element exists for testing"
-  // ---------------------------------------------------------------------------
-
   readonly usernameInput: Locator;
   readonly passwordInput: Locator;
   readonly loginButton: Locator;
   readonly errorMessage: Locator;
+  readonly errorCloseButton: Locator;
 
-  constructor(page: Page) {
-    this.page = page;
-
-    // The username text field
-    this.usernameInput = page.locator('[data-test="username"]');
-
-    // The password text field
-    this.passwordInput = page.locator('[data-test="password"]');
-
-    // The "Login" submit button
-    this.loginButton = page.locator('[data-test="login-button"]');
-
-    // The red error container shown when login fails
-    this.errorMessage = page.locator('[data-test="error"]');
+  constructor(readonly page: Page) {
+    this.usernameInput = page.getByTestId('username');
+    this.passwordInput = page.getByTestId('password');
+    this.loginButton = page.getByTestId('login-button');
+    this.errorMessage = page.getByTestId('error');
+    this.errorCloseButton = page.getByTestId('error-button');
   }
 
-  // ---------------------------------------------------------------------------
-  // Actions
-  // ---------------------------------------------------------------------------
-
-  // Navigate to the login page
   async goto(): Promise<void> {
     await this.page.goto('/');
+    await expect(this.loginButton).toBeVisible();
   }
 
-  // Fill the form and click submit
-  async login(username: string, password: string): Promise<void> {
-    await this.usernameInput.fill(username);
-    await this.passwordInput.fill(password);
+  async login(username: string, password: string): Promise<void>;
+  async login(user: Credentials): Promise<void>;
+  async login(userOrName: Credentials | string, password?: string): Promise<void> {
+    const creds = typeof userOrName === 'string' ? { username: userOrName, password: password ?? '' } : userOrName;
+    await this.usernameInput.fill(creds.username);
+    await this.passwordInput.fill(creds.password);
     await this.loginButton.click();
   }
 
-  // Assert that an error message is visible and contains the expected text
   async expectError(message: string): Promise<void> {
-    await expect(this.errorMessage).toBeVisible();
-    await expect(this.errorMessage).toContainText(message);
+    await expect(this.errorMessage).toHaveText(message);
   }
 
-  // Assert that the login was successful by checking the URL
   async expectSuccessfulLogin(): Promise<void> {
-    await expect(this.page).toHaveURL(/inventory/);
+    await expect(this.page).toHaveURL(/inventory\.html/);
+  }
+
+  async expectOnLoginPage(): Promise<void> {
+    await expect(this.loginButton).toBeVisible();
+    await expect(this.page).not.toHaveURL(/inventory|cart|checkout/);
   }
 }

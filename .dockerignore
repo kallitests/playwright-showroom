@@ -31,3 +31,6 @@ Thumbs.db
 
 # TypeScript build output — tests run from source via ts-node
 dist/
+metrics/
+blob-report/
+.local-saucedemo/

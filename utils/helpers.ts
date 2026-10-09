@@ -1,164 +1,77 @@
 // =============================================================================
-// utils/helpers.ts — Reusable utilities shared across all test files
+// utils/helpers.ts — Pure helpers + a few low-level browser helpers
 // =============================================================================
-// These helpers wrap common Playwright patterns so test specs stay readable.
-// Each function is focused on ONE thing and has a clear, typed signature.
+// Business-flow actions live in the Page Objects (pages/). This file keeps only:
+//   - pure functions (price parsing, order totals) — unit-testable, no browser
+//   - session helpers (UI login, cookie login) reused by fixtures and specs
 // =============================================================================
 
-import { Page, expect } from '@playwright/test';
-import { USERS } from './test-data';
+import { expect, type BrowserContext, type Page } from '@playwright/test';
+import { BASE_HOST } from './env';
+import { SESSION_COOKIE, TAX_RATE, type Credentials, type CheckoutInfo } from './test-data';
 
 // ---------------------------------------------------------------------------
-// Type definitions
+// Pure functions
 // ---------------------------------------------------------------------------
 
-type UserCredentials = {
-  username: string;
-  password: string;
-};
+/** "$29.99" | "Item total: $29.99" | "Tax: $2.40" -> 29.99 */
+export function parsePrice(text: string | null | undefined): number {
+  const match = (text ?? '').match(/\$\s*(\d+(?:\.\d{1,2})?)/);
+  if (!match) throw new Error(`No price found in "${text}"`);
+  return Number(match[1]);
+}
 
-// ---------------------------------------------------------------------------
-// login()
-// ---------------------------------------------------------------------------
-// Navigates to the login page and fills + submits the login form.
-// Does NOT assert the result — the caller decides what to assert next.
-//
-// Usage:
-//   await login(page, USERS.standard);
-//   await expect(page).toHaveURL(/inventory/);
-// ---------------------------------------------------------------------------
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
-export async function login(page: Page, user: UserCredentials): Promise<void> {
-  // Go to the root URL (maps to baseURL in playwright.config.ts)
-  await page.goto('/');
+/** Mirrors the SauceDemo order computation: subtotal, 8 % tax, total. */
+export function expectedTotals(prices: number[]): { subtotal: number; tax: number; total: number } {
+  const subtotal = round2(prices.reduce((sum, p) => sum + p, 0));
+  const tax = round2(subtotal * TAX_RATE);
+  return { subtotal, tax, total: round2(subtotal + tax) };
+}
 
-  // Fill the username input — located by its data-test attribute
-  // Using data-test selectors is best practice: they survive CSS refactoring
-  await page.locator('[data-test="username"]').fill(user.username);
-
-  // Fill the password input
-  await page.locator('[data-test="password"]').fill(user.password);
-
-  // Click the login button
-  await page.locator('[data-test="login-button"]').click();
+export function isSortedAsc<T>(values: T[], compare: (a: T, b: T) => number): boolean {
+  return values.every((v, i) => i === 0 || compare(values[i - 1], v) <= 0);
 }
 
 // ---------------------------------------------------------------------------
-// loginAsStandardUser()
+// Session helpers
 // ---------------------------------------------------------------------------
-// Convenience wrapper — logs in as the standard user with a single call.
-// Used in most tests that need an authenticated state.
-// ---------------------------------------------------------------------------
+
+/** Logs in through the UI. Does not assert the outcome — the caller decides. */
+export async function login(page: Page, user: Credentials): Promise<void> {
+  await page.goto('/');
+  await page.getByTestId('username').fill(user.username);
+  await page.getByTestId('password').fill(user.password);
+  await page.getByTestId('login-button').click();
+}
 
 export async function loginAsStandardUser(page: Page): Promise<void> {
-  await login(page, USERS.standard);
-  // Wait for the inventory page to confirm login was successful
-  await expect(page).toHaveURL(/inventory/);
+  await login(page, { username: 'standard_user', password: 'secret_sauce' });
+  await expect(page).toHaveURL(/inventory\.html/);
 }
 
-// ---------------------------------------------------------------------------
-// addProductToCart()
-// ---------------------------------------------------------------------------
-// Adds a product to the cart by its display name.
-// Finds the product card, then clicks its "Add to cart" button.
-//
-// Usage:
-//   await addProductToCart(page, 'Sauce Labs Backpack');
-// ---------------------------------------------------------------------------
-
-export async function addProductToCart(
-  page: Page,
-  productName: string
-): Promise<void> {
-  // Find the inventory item that contains the product name
-  const item = page
-    .locator('.inventory_item')
-    .filter({ hasText: productName });
-
-  // Click the Add to cart button inside that item
-  await item.locator('button').click();
+/**
+ * Fast authentication: SauceDemo keeps the session in a client-side cookie
+ * ("session-username"). Injecting it skips the login UI entirely, which keeps
+ * non-auth tests fast and independent from the login screen.
+ * Login itself is covered by dedicated UI tests.
+ */
+export async function loginViaCookie(context: BrowserContext, username: string): Promise<void> {
+  await context.addCookies([
+    {
+      name: SESSION_COOKIE,
+      value: username,
+      domain: BASE_HOST,
+      path: '/',
+      expires: Math.floor(Date.now() / 1000) + 10 * 60,
+    },
+  ]);
 }
 
-// ---------------------------------------------------------------------------
-// getCartCount()
-// ---------------------------------------------------------------------------
-// Returns the current number shown on the cart badge.
-// Returns 0 if the badge is not visible (empty cart).
-// ---------------------------------------------------------------------------
-
-export async function getCartCount(page: Page): Promise<number> {
-  const badge = page.locator('.shopping_cart_badge');
-
-  // If the badge is not visible, the cart is empty
-  const isVisible = await badge.isVisible();
-  if (!isVisible) return 0;
-
-  const text = await badge.textContent();
-  return parseInt(text ?? '0', 10);
-}
-
-// ---------------------------------------------------------------------------
-// goToCart()
-// ---------------------------------------------------------------------------
-// Clicks the cart icon to navigate to the cart page.
-// ---------------------------------------------------------------------------
-
-export async function goToCart(page: Page): Promise<void> {
-  await page.locator('.shopping_cart_link').click();
-  await expect(page).toHaveURL(/cart/);
-}
-
-// ---------------------------------------------------------------------------
-// getErrorMessage()
-// ---------------------------------------------------------------------------
-// Returns the text of the error container shown after a failed login.
-// Returns null if no error is displayed.
-// ---------------------------------------------------------------------------
-
-export async function getErrorMessage(page: Page): Promise<string | null> {
-  const errorContainer = page.locator('[data-test="error"]');
-  const isVisible = await errorContainer.isVisible();
-  if (!isVisible) return null;
-  return errorContainer.textContent();
-}
-
-// ---------------------------------------------------------------------------
-// measureLoginDuration()
-// ---------------------------------------------------------------------------
-// Measures how long a login attempt takes in milliseconds.
-// Used in regression tests to detect performance regressions.
-// ---------------------------------------------------------------------------
-
-export async function measureLoginDuration(
-  page: Page,
-  user: UserCredentials
-): Promise<number> {
-  await page.goto('/');
-
-  const start = Date.now();
-
-  await page.locator('[data-test="username"]').fill(user.username);
-  await page.locator('[data-test="password"]').fill(user.password);
-  await page.locator('[data-test="login-button"]').click();
-
-  // Wait for navigation to complete before stopping the clock
-  await page.waitForURL(/inventory/);
-
-  return Date.now() - start;
-}
-
-// ---------------------------------------------------------------------------
-// fillCheckoutForm()
-// ---------------------------------------------------------------------------
-// Fills the checkout step-one form with the provided data.
-// Does NOT click Continue — the caller handles that.
-// ---------------------------------------------------------------------------
-
-export async function fillCheckoutForm(
-  page: Page,
-  data: { firstName: string; lastName: string; postalCode: string }
-): Promise<void> {
-  await page.locator('[data-test="firstName"]').fill(data.firstName);
-  await page.locator('[data-test="lastName"]').fill(data.lastName);
-  await page.locator('[data-test="postalCode"]').fill(data.postalCode);
+/** Fills the checkout step-one form (does not submit). */
+export async function fillCheckoutForm(page: Page, data: CheckoutInfo): Promise<void> {
+  await page.getByTestId('firstName').fill(data.firstName);
+  await page.getByTestId('lastName').fill(data.lastName);
+  await page.getByTestId('postalCode').fill(data.postalCode);
 }

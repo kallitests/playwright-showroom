@@ -1,3 +1,7 @@
+NOTE (v2, 2026-10): this file is the ORIGINAL v1 specification, kept for history.
+The current reference is README.md and docs/ (test-strategy, test-catalog,
+exploratory-testing, architecture).
+
 ================================================================================
   PLAYWRIGHT SHOWROOM — PROJECT SPECIFICATION
   Target site: https://www.saucedemo.com

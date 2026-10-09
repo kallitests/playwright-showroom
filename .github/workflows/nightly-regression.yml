@@ -1,0 +1,84 @@
+name: Nightly regression
+
+# Full regression on the live site every night, all desktop browsers + mobile
+# smoke, with metrics and optional alerting (Slack / Teams / email).
+# Alerting is activated only by repository secrets — absent secrets = no alert.
+
+on:
+  schedule:
+    - cron: '17 2 * * *' # 02:17 UTC daily (off the hour to avoid runner peaks)
+  workflow_dispatch:
+    inputs:
+      notify:
+        description: 'Send notifications even if the run passes'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+env:
+  CI: 'true'
+
+jobs:
+  regression:
+    name: Regression (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { project: chromium, browser: chromium, args: '' }
+          - { project: firefox, browser: firefox, args: '--grep-invert @chromium-only' }
+          - { project: webkit, browser: webkit, args: '--grep-invert @chromium-only' }
+          - { project: mobile-chrome, browser: chromium, args: '--grep @smoke' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Run regression
+        run: npx playwright test --project=${{ matrix.project }} ${{ matrix.args }}
+      - name: Metrics → job summary
+        if: always()
+        run: node scripts/metrics/print-summary.mjs || true
+      - name: Slack / Teams alert
+        if: always()
+        run: node scripts/notify/notify.mjs
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          NOTIFY_ON: ${{ inputs.notify && 'always' || 'failure' }}
+      - name: Email alert
+        if: failure() && env.SMTP_SERVER != ''
+        uses: dawidd6/action-send-mail@v3
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: '❌ Nightly regression failed — ${{ matrix.project }}'
+          to: ${{ secrets.NOTIFY_EMAIL_TO }}
+          from: Playwright Showroom CI
+          html_body: file://metrics/summary.md
+          convert_markdown: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-${{ matrix.project }}
+          path: |
+            playwright-report/
+            metrics/
+            test-results/junit.xml
+            test-results/results.json
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: nightly-failure-evidence-${{ matrix.project }}
+          path: test-results/
+          retention-days: 14

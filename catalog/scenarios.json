@@ -1,0 +1,995 @@
+{
+  "description": "Scenario catalog for SauceDemo — see docs/test-catalog.md. Coverage = scenarios executed, not code coverage.",
+  "scenarios": [
+    {
+      "id": "AUTH-001",
+      "area": "Authentication",
+      "title": "Valid login lands on catalog",
+      "risk": "high",
+      "priority": "P1",
+      "type": "smoke",
+      "automated": true,
+      "spec": "tests/smoke/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-002",
+      "area": "Authentication",
+      "title": "Wrong password rejected",
+      "risk": "high",
+      "priority": "P1",
+      "type": "smoke",
+      "automated": true,
+      "spec": "tests/smoke/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-003",
+      "area": "Authentication",
+      "title": "Empty username / both fields empty",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-004",
+      "area": "Authentication",
+      "title": "Empty password",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-005",
+      "area": "Authentication",
+      "title": "Locked-out user refused",
+      "risk": "high",
+      "priority": "P1",
+      "type": "smoke",
+      "automated": true,
+      "spec": "tests/smoke/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-006",
+      "area": "Authentication",
+      "title": "Logout returns to login",
+      "risk": "high",
+      "priority": "P1",
+      "type": "smoke",
+      "automated": true,
+      "spec": "tests/smoke/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-007",
+      "area": "Authentication",
+      "title": "Protected routes redirect anonymous users with message",
+      "risk": "high",
+      "priority": "P1",
+      "type": "smoke+ui",
+      "automated": true,
+      "spec": "tests/smoke/auth.spec.ts, tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-008",
+      "area": "Authentication",
+      "title": "Unknown user, case, whitespace, injection-like input",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-009",
+      "area": "Authentication",
+      "title": "Error banner can be dismissed",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-010",
+      "area": "Authentication",
+      "title": "Back after logout does not reveal catalog",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-011",
+      "area": "Authentication",
+      "title": "Expired session forces new login",
+      "risk": "high",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-012",
+      "area": "Authentication",
+      "title": "Keyboard-only login",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-013",
+      "area": "Authentication",
+      "title": "Password field is masked",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-014",
+      "area": "Authentication",
+      "title": "Session cookie set on login / removed on logout",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/auth.spec.ts"
+    },
+    {
+      "id": "AUTH-015",
+      "area": "Authentication",
+      "title": "Brute-force / rate limiting on login",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "exploratory",
+      "automated": false,
+      "spec": "n/a — client-side auth, no server to rate-limit (documented)"
+    },
+    {
+      "id": "CAT-001",
+      "area": "Catalog",
+      "title": "6 reference products displayed",
+      "risk": "high",
+      "priority": "P1",
+      "type": "smoke",
+      "automated": true,
+      "spec": "tests/smoke/inventory.spec.ts"
+    },
+    {
+      "id": "CAT-002",
+      "area": "Catalog",
+      "title": "Prices match reference data",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-003",
+      "area": "Catalog",
+      "title": "Default sort A→Z",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-004",
+      "area": "Catalog",
+      "title": "Sort Z→A",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-005",
+      "area": "Catalog",
+      "title": "Sort price low→high",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-006",
+      "area": "Catalog",
+      "title": "Sort price high→low",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-007",
+      "area": "Catalog",
+      "title": "Detail page consistent with list (x6)",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-008",
+      "area": "Catalog",
+      "title": "Back to products",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-009",
+      "area": "Catalog",
+      "title": "Unknown product id handled",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-010",
+      "area": "Catalog",
+      "title": "Cart state survives sort change",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-011",
+      "area": "Catalog",
+      "title": "Images loaded and distinct",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/catalog.spec.ts"
+    },
+    {
+      "id": "CAT-012",
+      "area": "Catalog",
+      "title": "Visual regression of catalog layout",
+      "risk": "low",
+      "priority": "P3",
+      "type": "regression",
+      "automated": false,
+      "spec": "backlog — toHaveScreenshot needs pinned OS/fonts baseline in CI"
+    },
+    {
+      "id": "CART-001",
+      "area": "Cart",
+      "title": "Add product updates badge",
+      "risk": "high",
+      "priority": "P1",
+      "type": "smoke",
+      "automated": true,
+      "spec": "tests/smoke/inventory.spec.ts"
+    },
+    {
+      "id": "CART-002",
+      "area": "Cart",
+      "title": "Multiple products: badge, list, prices agree",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CART-003",
+      "area": "Cart",
+      "title": "Remove from cart page",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CART-004",
+      "area": "Cart",
+      "title": "Add/Remove toggle reversible",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CART-005",
+      "area": "Cart",
+      "title": "Add from detail page",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CART-006",
+      "area": "Cart",
+      "title": "Cart survives reload",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CART-007",
+      "area": "Cart",
+      "title": "Continue Shopping keeps cart",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CART-008",
+      "area": "Cart",
+      "title": "Reset App State empties cart",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CART-009",
+      "area": "Cart",
+      "title": "Quantity fixed to 1",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CART-011",
+      "area": "Cart",
+      "title": "UI and localStorage in sync",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/cart.spec.ts"
+    },
+    {
+      "id": "CHK-001",
+      "area": "Checkout",
+      "title": "Golden path purchase",
+      "risk": "high",
+      "priority": "P1",
+      "type": "smoke",
+      "automated": true,
+      "spec": "tests/smoke/inventory.spec.ts"
+    },
+    {
+      "id": "CHK-002",
+      "area": "Checkout",
+      "title": "Missing first name blocked",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/checkout.spec.ts"
+    },
+    {
+      "id": "CHK-003",
+      "area": "Checkout",
+      "title": "Missing last name blocked",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/checkout.spec.ts"
+    },
+    {
+      "id": "CHK-004",
+      "area": "Checkout",
+      "title": "Missing postal code blocked",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/checkout.spec.ts"
+    },
+    {
+      "id": "CHK-005",
+      "area": "Checkout",
+      "title": "Subtotal + 8% tax = total (1, 2, 6 items)",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/checkout.spec.ts"
+    },
+    {
+      "id": "CHK-006",
+      "area": "Checkout",
+      "title": "Cancel on step one keeps cart",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/checkout.spec.ts"
+    },
+    {
+      "id": "CHK-007",
+      "area": "Checkout",
+      "title": "Cancel on overview keeps cart",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/checkout.spec.ts"
+    },
+    {
+      "id": "CHK-008",
+      "area": "Checkout",
+      "title": "Cart emptied after order",
+      "risk": "high",
+      "priority": "P1",
+      "type": "e2e",
+      "automated": true,
+      "spec": "tests/e2e/checkout-flow.spec.ts"
+    },
+    {
+      "id": "CHK-009",
+      "area": "Checkout",
+      "title": "Overview lists cart content + payment/shipping",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/checkout.spec.ts"
+    },
+    {
+      "id": "CHK-010",
+      "area": "Checkout",
+      "title": "Back Home after confirmation",
+      "risk": "low",
+      "priority": "P3",
+      "type": "e2e",
+      "automated": true,
+      "spec": "tests/e2e/checkout-flow.spec.ts"
+    },
+    {
+      "id": "CHK-011",
+      "area": "Checkout",
+      "title": "PDF receipt download",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "e2e",
+      "automated": true,
+      "spec": "tests/e2e/checkout-flow.spec.ts"
+    },
+    {
+      "id": "CHK-014",
+      "area": "Checkout",
+      "title": "Unicode names / alphanumeric postal codes",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "tests/ui/checkout.spec.ts"
+    },
+    {
+      "id": "E2E-001",
+      "area": "E2E",
+      "title": "Full journey with UI login, list + detail add",
+      "risk": "high",
+      "priority": "P1",
+      "type": "e2e",
+      "automated": true,
+      "spec": "tests/e2e/checkout-flow.spec.ts"
+    },
+    {
+      "id": "E2E-002",
+      "area": "E2E",
+      "title": "Post-order state reset",
+      "risk": "high",
+      "priority": "P1",
+      "type": "e2e",
+      "automated": true,
+      "spec": "tests/e2e/checkout-flow.spec.ts"
+    },
+    {
+      "id": "E2E-003",
+      "area": "E2E",
+      "title": "Interrupted purchase then completed",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "e2e",
+      "automated": true,
+      "spec": "tests/e2e/checkout-flow.spec.ts"
+    },
+    {
+      "id": "E2E-004",
+      "area": "E2E",
+      "title": "Receipt download journey",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "e2e",
+      "automated": true,
+      "spec": "tests/e2e/checkout-flow.spec.ts"
+    },
+    {
+      "id": "ROB-001",
+      "area": "Robustness",
+      "title": "Double-click add to cart",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/robustness.spec.ts"
+    },
+    {
+      "id": "ROB-002",
+      "area": "Robustness",
+      "title": "Refresh on overview",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/robustness.spec.ts"
+    },
+    {
+      "id": "ROB-003",
+      "area": "Robustness",
+      "title": "Back after completed order",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/robustness.spec.ts"
+    },
+    {
+      "id": "ROB-004",
+      "area": "Robustness",
+      "title": "Deep link + refresh",
+      "risk": "high",
+      "priority": "P2",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/robustness.spec.ts"
+    },
+    {
+      "id": "ROB-005",
+      "area": "Robustness",
+      "title": "Two tabs share cart",
+      "risk": "low",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/robustness.spec.ts"
+    },
+    {
+      "id": "ROB-006",
+      "area": "Robustness",
+      "title": "Back/Forward catalog ⇄ detail",
+      "risk": "low",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/robustness.spec.ts"
+    },
+    {
+      "id": "USR-001",
+      "area": "Personas",
+      "title": "problem_user: placeholder images",
+      "risk": "low",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "USR-002",
+      "area": "Personas",
+      "title": "problem_user: some add-to-cart ignored",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "USR-003",
+      "area": "Personas",
+      "title": "problem_user: last name overwrites first name",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "USR-004",
+      "area": "Personas",
+      "title": "problem_user: sorting inert",
+      "risk": "low",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "USR-005",
+      "area": "Personas",
+      "title": "error_user: add throws, cart unchanged",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "USR-006",
+      "area": "Personas",
+      "title": "performance_glitch_user slower than standard",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "USR-007",
+      "area": "Personas",
+      "title": "error_user: finish does not empty cart",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "USR-008",
+      "area": "Personas",
+      "title": "visual_user: prices differ",
+      "risk": "low",
+      "priority": "P3",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "REG-001",
+      "area": "Personas",
+      "title": "Cart persists after reload (v1)",
+      "risk": "high",
+      "priority": "P1",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "REG-002",
+      "area": "Personas",
+      "title": "Logout keeps cart (current behaviour)",
+      "risk": "high",
+      "priority": "P2",
+      "type": "regression",
+      "automated": true,
+      "spec": "tests/regression/user-behaviors.spec.ts"
+    },
+    {
+      "id": "API-001",
+      "area": "HTTP & network",
+      "title": "GET / serves HTML shell",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/http-resources.spec.ts"
+    },
+    {
+      "id": "API-002",
+      "area": "HTTP & network",
+      "title": "JS bundle served",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/http-resources.spec.ts"
+    },
+    {
+      "id": "API-003",
+      "area": "HTTP & network",
+      "title": "Manifest contract + icons",
+      "risk": "low",
+      "priority": "P3",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/http-resources.spec.ts"
+    },
+    {
+      "id": "API-004",
+      "area": "HTTP & network",
+      "title": "robots.txt",
+      "risk": "low",
+      "priority": "P3",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/http-resources.spec.ts"
+    },
+    {
+      "id": "API-005",
+      "area": "HTTP & network",
+      "title": "Deep links → 404 + SPA bootstrap",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/http-resources.spec.ts"
+    },
+    {
+      "id": "API-006",
+      "area": "HTTP & network",
+      "title": "No business API exposed",
+      "risk": "low",
+      "priority": "P3",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/http-resources.spec.ts"
+    },
+    {
+      "id": "API-007",
+      "area": "HTTP & network",
+      "title": "Shell response-time budget",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/http-resources.spec.ts"
+    },
+    {
+      "id": "NET-001",
+      "area": "HTTP & network",
+      "title": "No uncaught JS error on login",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/network.spec.ts"
+    },
+    {
+      "id": "NET-002",
+      "area": "HTTP & network",
+      "title": "No failed first-party request in purchase",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/network.spec.ts"
+    },
+    {
+      "id": "NET-003",
+      "area": "HTTP & network",
+      "title": "Accept header on navigation",
+      "risk": "low",
+      "priority": "P3",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/network.spec.ts"
+    },
+    {
+      "id": "NET-004",
+      "area": "HTTP & network",
+      "title": "Server 503 surfaced (mocked)",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/network.spec.ts"
+    },
+    {
+      "id": "NET-005",
+      "area": "HTTP & network",
+      "title": "Images blocked: still usable",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/network.spec.ts"
+    },
+    {
+      "id": "NET-006",
+      "area": "HTTP & network",
+      "title": "Slow network: still usable",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/network.spec.ts"
+    },
+    {
+      "id": "NET-007",
+      "area": "HTTP & network",
+      "title": "Bundle failure: no broken form",
+      "risk": "low",
+      "priority": "P3",
+      "type": "api",
+      "automated": true,
+      "spec": "tests/api/network.spec.ts"
+    },
+    {
+      "id": "MOCK-001",
+      "area": "Mock Orders API",
+      "title": "Health identifies mock",
+      "risk": "low",
+      "priority": "P3",
+      "type": "mock",
+      "automated": true,
+      "spec": "tests/api/orders-contract.mock.spec.ts"
+    },
+    {
+      "id": "MOCK-002",
+      "area": "Mock Orders API",
+      "title": "201 + contract",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "mock",
+      "automated": true,
+      "spec": "tests/api/orders-contract.mock.spec.ts"
+    },
+    {
+      "id": "MOCK-003",
+      "area": "Mock Orders API",
+      "title": "Totals rule = UI rule",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "mock",
+      "automated": true,
+      "spec": "tests/api/orders-contract.mock.spec.ts"
+    },
+    {
+      "id": "MOCK-004",
+      "area": "Mock Orders API",
+      "title": "Read back / 404",
+      "risk": "low",
+      "priority": "P3",
+      "type": "mock",
+      "automated": true,
+      "spec": "tests/api/orders-contract.mock.spec.ts"
+    },
+    {
+      "id": "MOCK-005",
+      "area": "Mock Orders API",
+      "title": "Validation 400 (x5)",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "mock",
+      "automated": true,
+      "spec": "tests/api/orders-contract.mock.spec.ts"
+    },
+    {
+      "id": "MOCK-006",
+      "area": "Mock Orders API",
+      "title": "Auth 401",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "mock",
+      "automated": true,
+      "spec": "tests/api/orders-contract.mock.spec.ts"
+    },
+    {
+      "id": "MOCK-007",
+      "area": "Mock Orders API",
+      "title": "Idempotency 201/409",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "mock",
+      "automated": true,
+      "spec": "tests/api/orders-contract.mock.spec.ts"
+    },
+    {
+      "id": "EXP-001",
+      "area": "Exploratory findings",
+      "title": "Cart leaks to next user after logout",
+      "risk": "high",
+      "priority": "P1",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "tests/exploratory/findings.spec.ts"
+    },
+    {
+      "id": "EXP-002",
+      "area": "Exploratory findings",
+      "title": "Deep links return HTTP 404",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "tests/api/http-resources.spec.ts"
+    },
+    {
+      "id": "EXP-003",
+      "area": "Exploratory findings",
+      "title": "Whitespace-only customer info accepted",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "tests/exploratory/findings.spec.ts"
+    },
+    {
+      "id": "EXP-004",
+      "area": "Exploratory findings",
+      "title": "Checkout with empty cart",
+      "risk": "high",
+      "priority": "P2",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "tests/exploratory/findings.spec.ts"
+    },
+    {
+      "id": "EXP-005",
+      "area": "Exploratory findings",
+      "title": "Refresh on confirmation loses receipt",
+      "risk": "low",
+      "priority": "P3",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "tests/exploratory/findings.spec.ts"
+    },
+    {
+      "id": "EXP-006",
+      "area": "Exploratory findings",
+      "title": "Sort resets after detail round-trip",
+      "risk": "low",
+      "priority": "P3",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "tests/exploratory/findings.spec.ts"
+    },
+    {
+      "id": "A11Y-001",
+      "area": "Accessibility",
+      "title": "Login page: no critical axe violation",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "tests/exploratory/accessibility.spec.ts"
+    },
+    {
+      "id": "A11Y-002",
+      "area": "Accessibility",
+      "title": "Shop pages: no critical axe violation",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "tests/exploratory/accessibility.spec.ts"
+    },
+    {
+      "id": "A11Y-003",
+      "area": "Accessibility",
+      "title": "Screen-reader walkthrough (manual)",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "exploratory",
+      "automated": false,
+      "spec": "manual charter CH-05"
+    }
+  ]
+}

@@ -12,7 +12,8 @@
 
 # Use the official Playwright image pinned to a specific version for
 # reproducibility — "latest" can break CI when a new version ships
-FROM mcr.microsoft.com/playwright:v1.44.0-jammy
+# Keep in sync with "@playwright/test" in package.json (browser builds must match)
+FROM mcr.microsoft.com/playwright:v1.56.1-noble
 
 # ---------------------------------------------------------------------------
 # Set the working directory inside the container

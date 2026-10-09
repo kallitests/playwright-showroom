@@ -1,0 +1,74 @@
+# =============================================================================
+# azure-pipelines.yml — Azure DevOps pipeline (optional)
+# =============================================================================
+# Publishes Playwright results to the Azure DevOps "Tests" tab (JUnit) and
+# the HTML report as a pipeline artifact. Works with no extra configuration.
+#
+# Optional — Azure Test Plans: define the pipeline variables (secret for the
+# token) AZURE_DEVOPS_ORG_URL, AZURE_DEVOPS_PROJECT, AZURE_DEVOPS_PLAN_ID,
+# AZURE_DEVOPS_TOKEN and set INSTALL_ADO_REPORTER=true. Test cases are mapped
+# with ADO ids in test titles or tags, e.g. tag '@[1234]'.
+# See docs/architecture.md § Azure DevOps.
+# =============================================================================
+
+trigger:
+  branches:
+    include: [main]
+
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  CI: 'true'
+  npm_config_cache: $(Pipeline.Workspace)/.npm
+
+steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '22.x'
+    displayName: Use Node.js 22
+
+  - script: npm ci
+    displayName: Install dependencies
+
+  - script: npm i --no-save @alex_neo/playwright-azure-reporter
+    displayName: Install Azure Test Plans reporter (optional)
+    condition: eq(variables['INSTALL_ADO_REPORTER'], 'true')
+
+  - script: npx playwright install --with-deps chromium
+    displayName: Install Chromium
+
+  - script: npm run check
+    displayName: Lint & type-check
+
+  - script: npx playwright test --project=chromium
+    displayName: Run Playwright tests
+    env:
+      AZURE_DEVOPS_TOKEN: $(AZURE_DEVOPS_TOKEN)
+
+  - task: PublishTestResults@2
+    displayName: Publish test results
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: test-results/junit.xml
+      testRunTitle: Playwright Showroom — $(Build.BuildNumber)
+      failTaskOnFailedTests: true
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish HTML report
+    condition: succeededOrFailed()
+    inputs:
+      targetPath: playwright-report
+      artifact: playwright-report
+
+  - task: PublishPipelineArtifact@1
+    displayName: Publish QA metrics
+    condition: succeededOrFailed()
+    inputs:
+      targetPath: metrics
+      artifact: qa-metrics

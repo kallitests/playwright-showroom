@@ -1,219 +1,144 @@
 // =============================================================================
-// tests/regression/user-behaviors.spec.ts — Non-regression tests
+// tests/regression/user-behaviors.spec.ts — Persona matrix (known behaviours)
 // =============================================================================
-// WHAT ARE NON-REGRESSION TESTS?
-//   Non-regression tests verify that known behaviors (including known bugs)
-//   stay consistent over time.
+// SauceDemo ships personas with DELIBERATE defects. These tests pin those
+// behaviours so that any change (fixed, worse, different) is noticed.
+// They are characterisation tests: they assert what the product does today,
+// with an explicit annotation explaining why.
 //
-//   Two types:
-//     1. Known CORRECT behaviors — verify they haven't broken
-//     2. Known BUGS — verify the bug is still present (not accidentally "fixed"
-//        in a way that could mask a larger problem)
-//
-// WHAT THIS FILE TESTS:
-//   SauceDemo ships with users that have different behaviors by design:
-//     - performance_glitch_user: login takes longer → performance regression
-//     - problem_user: images are broken → known bug, should remain consistent
-//
-// RUN: npx playwright test tests/regression/
+// v1 → v2 fixes
+//   - performance_glitch_user: v1 stopped the clock at the URL change, before
+//     the (blocking) render => the glitch was never measured. v2 waits for the
+//     catalog to be visible.
+//   - problem_user images: v1 used a selector that no longer exists.
+//   - Hard 3 s login budget removed from the default run (network-dependent);
+//     performance is measured relatively instead.
 // =============================================================================
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../fixtures';
 import { login } from '../../utils/helpers';
-import { USERS } from '../../utils/test-data';
+import { CHECKOUT_INFO, PRODUCTS, USERS, productByName, type Credentials } from '../../utils/test-data';
 
-test.describe('🔁 Non-Regression — User Behavior Consistency', () => {
+async function timeToCatalog(page: import('@playwright/test').Page, user: Credentials): Promise<number> {
+  await page.goto('/');
+  const start = Date.now();
+  await page.getByTestId('username').fill(user.username);
+  await page.getByTestId('password').fill(user.password);
+  await page.getByTestId('login-button').click();
+  await expect(page.getByTestId('inventory-list')).toBeVisible({ timeout: 20_000 });
+  return Date.now() - start;
+}
 
-  // -------------------------------------------------------------------------
-  // TEST 1: standard_user login is fast
-  // -------------------------------------------------------------------------
-  // Establishes a performance baseline for comparison.
-  // If this ever starts taking >3s, something is wrong.
-  // -------------------------------------------------------------------------
+test.describe('Regression — personas', { tag: ['@regression', '@personas'] }, () => {
+  test('USR-006 performance_glitch_user reaches the catalog markedly slower than standard_user', async ({ browser }, testInfo) => {
+    test.slow();
+    const standardCtx = await browser.newContext();
+    const glitchCtx = await browser.newContext();
+    try {
+      const standard = await timeToCatalog(await standardCtx.newPage(), USERS.standard);
+      const glitch = await timeToCatalog(await glitchCtx.newPage(), USERS.performanceGlitch);
+      testInfo.annotations.push({ type: 'metric', description: `standard=${standard}ms glitch=${glitch}ms` });
 
-  test('standard_user login should complete within 3 seconds', async ({
-    page,
-  }) => {
-    await page.goto('/');
-
-    // Record the time before clicking login
-    const start = Date.now();
-
-    await page.locator('[data-test="username"]').fill(USERS.standard.username);
-    await page.locator('[data-test="password"]').fill(USERS.standard.password);
-    await page.locator('[data-test="login-button"]').click();
-
-    // Wait for the inventory page to fully load
-    await page.waitForURL(/inventory/);
-
-    const duration = Date.now() - start;
-
-    // Assert: the whole login should complete in under 3 seconds
-    // This catches performance regressions introduced by code changes
-    expect(duration).toBeLessThan(3000);
+      // The app blocks the main thread ~5 s for this persona; 2 s margin absorbs noise.
+      expect(glitch - standard).toBeGreaterThan(2_000);
+    } finally {
+      await standardCtx.close();
+      await glitchCtx.close();
+    }
   });
 
-  // -------------------------------------------------------------------------
-  // TEST 2: performance_glitch_user takes significantly longer than standard
-  // -------------------------------------------------------------------------
-  // This user is intentionally slow (SauceDemo simulates a delay).
-  // We test this to verify the performance difference is stable and documented.
-  //
-  // Note: we use a generous timeout (15s) because the glitch user can be
-  // very slow — we're just asserting it's SLOWER than standard, not fast.
-  // -------------------------------------------------------------------------
+  test.describe('problem_user', () => {
+    test.use({ user: 'problem' });
 
-  test('performance_glitch_user login should take longer than standard_user', async ({
-    page,
-  }) => {
-    // Measure standard user login time
-    await page.goto('/');
-    const standardStart = Date.now();
-    await page.locator('[data-test="username"]').fill(USERS.standard.username);
-    await page.locator('[data-test="password"]').fill(USERS.standard.password);
-    await page.locator('[data-test="login-button"]').click();
-    await page.waitForURL(/inventory/);
-    const standardDuration = Date.now() - standardStart;
+    test('USR-001 every product image is the same "404" placeholder', async ({ loggedInPage: _page, inventoryPage }) => {
+      const srcs = await inventoryPage.items.locator('img').evaluateAll((imgs) => (imgs as HTMLImageElement[]).map((i) => i.src));
+      expect(srcs).toHaveLength(6);
+      expect(new Set(srcs).size).toBe(1);
+      expect(srcs[0]).toMatch(/sl-404/);
+    });
 
-    // Log out before measuring performance_glitch_user
-    await page.locator('#react-burger-menu-btn').click();
-    await page.locator('#logout_sidebar_link').waitFor({ state: 'visible' });
-    await page.locator('#logout_sidebar_link').click();
-    await page.waitForURL('/');
+    test('USR-002 some "Add to cart" buttons silently do nothing', async ({ loggedInPage: _page, inventoryPage }) => {
+      test.info().annotations.push({ type: 'known-defect', description: 'Odd item ids cannot be added for problem_user' });
+      await inventoryPage.addToCart(PRODUCTS.backpack); // id 4 (even) -> works
+      await inventoryPage.header.expectCartCount(1);
+      await inventoryPage.addToCart(PRODUCTS.boltTshirt); // id 1 (odd) -> ignored
+      await inventoryPage.header.expectCartCount(1);
+    });
 
-    // Measure performance_glitch_user login time
-    const glitchStart = Date.now();
-    await page
-      .locator('[data-test="username"]')
-      .fill(USERS.performanceGlitch.username);
-    await page
-      .locator('[data-test="password"]')
-      .fill(USERS.performanceGlitch.password);
-    await page.locator('[data-test="login-button"]').click();
-    // Use a longer timeout specifically for this user
-    await page.waitForURL(/inventory/, { timeout: 15_000 });
-    const glitchDuration = Date.now() - glitchStart;
+    test('USR-003 typing the last name overwrites the first name field', async ({ loggedInPage: _page, seedCart, cartPage, checkoutPage }) => {
+      test.info().annotations.push({ type: 'known-defect', description: 'Last name input writes into first name' });
+      await seedCart([PRODUCTS.backpack]);
+      await cartPage.goto();
+      await cartPage.clickCheckout();
+      await checkoutPage.firstNameInput.fill('Jane');
+      await checkoutPage.lastNameInput.fill('Doe');
 
-    // The glitch user should take longer than the standard user
-    expect(glitchDuration).toBeGreaterThan(standardDuration);
+      await expect(checkoutPage.lastNameInput).toHaveValue('');
+      await expect(checkoutPage.firstNameInput).not.toHaveValue('Jane');
+    });
 
-    // Log the actual durations for debugging visibility in CI
-    console.log(`Standard user: ${standardDuration}ms`);
-    console.log(`Glitch user:   ${glitchDuration}ms`);
+    test('USR-004 sorting has no effect', async ({ loggedInPage: _page, inventoryPage }) => {
+      const before = await inventoryPage.names();
+      await inventoryPage.sortBy('za');
+      expect(await inventoryPage.names()).toEqual(before);
+    });
   });
 
-  // -------------------------------------------------------------------------
-  // TEST 3: problem_user product images are broken (known bug)
-  // -------------------------------------------------------------------------
-  // The problem_user sees broken images in the product list.
-  // This test documents and asserts this known behavior.
-  //
-  // Why test a known bug?
-  //   If this test suddenly PASSES (images are no longer broken), it means
-  //   either the bug was fixed intentionally, or something else changed.
-  //   Either way, we want to know.
-  // -------------------------------------------------------------------------
+  test.describe('error_user', () => {
+    test.use({ user: 'error' });
 
-  test('problem_user should see broken product images', async ({ page }) => {
-    await login(page, USERS.problem);
-    await page.waitForURL(/inventory/);
+    test('USR-005 adding some products throws a runtime error and the cart is not updated', async ({
+      loggedInPage: _page,
+      inventoryPage,
+      runtimeErrors,
+    }) => {
+      await inventoryPage.addToCart(PRODUCTS.boltTshirt); // odd id -> throws
+      await expect.poll(() => runtimeErrors.length).toBeGreaterThan(0);
+      await inventoryPage.header.expectCartCount(0);
+    });
 
-    // Get all product images
-    const images = page.locator('.inventory_item_img img');
-    const count = await images.count();
+    test('USR-007 finishing an order does not empty the cart', async ({ loggedInPage: _page, seedCart, cartPage, checkoutPage }) => {
+      await seedCart([PRODUCTS.backpack]);
+      await cartPage.goto();
+      await cartPage.clickCheckout();
+      // Last name cannot be typed for error_user; the form still lets the user continue.
+      await checkoutPage.firstNameInput.fill(CHECKOUT_INFO.valid.firstName);
+      await checkoutPage.postalCodeInput.fill(CHECKOUT_INFO.valid.postalCode);
+      await checkoutPage.clickContinue();
+      await expect(checkoutPage.page).toHaveURL(/checkout-step-two/);
 
-    // Check that images exist
-    expect(count).toBeGreaterThan(0);
+      await checkoutPage.finishButton.click();
+      await checkoutPage.header.expectCartCount(1);
+    });
+  });
 
-    // problem_user always sees the wrong image (all images show the same
-    // broken/wrong image src). We check that the src contains an unexpected
-    // path compared to the standard catalog.
-    // At least one image should have a non-standard src.
-    const imageSrcs = await images.evaluateAll((imgs: HTMLImageElement[]) =>
-      imgs.map((img) => img.src)
-    );
+  test.describe('visual_user', () => {
+    test.use({ user: 'visual' });
 
-    // All problem_user images point to the same wrong image
-    // (SauceDemo uses "sl-404.168b1cce.jpg" for problem_user)
-    const uniqueSrcs = new Set(imageSrcs);
-
-    // For standard_user, all 6 images would have DIFFERENT sources.
-    // For problem_user, all images have the SAME (wrong) source.
-    // So we assert there's only 1 unique src across all products.
-    expect(uniqueSrcs.size).toBe(1);
+    test('USR-008 displayed prices differ from the reference catalog', async ({ loggedInPage: _page, inventoryPage }) => {
+      const prices = await inventoryPage.prices();
+      const reference = (await inventoryPage.names()).map((n) => productByName(n as never).price);
+      expect(prices).not.toEqual(reference);
+    });
   });
 });
 
-// =============================================================================
-// tests/regression/cart-persistence.spec.ts — Cart state regression tests
-// =============================================================================
-
-test.describe('🔁 Non-Regression — Cart State Persistence', () => {
-
-  // -------------------------------------------------------------------------
-  // TEST 4: Cart items persist after page reload
-  // -------------------------------------------------------------------------
-  // SauceDemo uses localStorage to persist the cart.
-  // If this ever breaks (items disappear on refresh), it's a major regression.
-  // -------------------------------------------------------------------------
-
-  test('cart items should persist after page reload', async ({ page }) => {
-    await login(page, USERS.standard);
-    await page.waitForURL(/inventory/);
-
-    // Add a product to the cart
-    await page
-      .locator('.inventory_item')
-      .filter({ hasText: 'Sauce Labs Backpack' })
-      .locator('button')
-      .click();
-
-    // Verify cart count before reload
-    expect(
-      await page.locator('.shopping_cart_badge').textContent()
-    ).toBe('1');
-
-    // Reload the page (simulates user refreshing the browser)
-    await page.reload();
-    await page.waitForURL(/inventory/);
-
-    // Cart count should still be 1 after reload
-    await expect(page.locator('.shopping_cart_badge')).toHaveText('1');
+test.describe('Regression — cart persistence (v1, fixed)', { tag: ['@regression', '@cart'] }, () => {
+  test('REG-001 cart items persist after page reload', async ({ loggedInPage, inventoryPage }) => {
+    await inventoryPage.addToCart(PRODUCTS.backpack);
+    await loggedInPage.reload();
+    await inventoryPage.header.expectCartCount(1);
   });
 
-  // -------------------------------------------------------------------------
-  // TEST 5: Cart is empty after logout and new login
-  // -------------------------------------------------------------------------
-  // When a user logs out and back in, their cart should be cleared.
-  // This prevents cart leakage between sessions.
-  // -------------------------------------------------------------------------
-
-  test('cart should be empty after logout and new login', async ({ page }) => {
-    // --- First session: add a product ---
+  test('REG-002 logging out does NOT clear the cart (current product behaviour)', async ({ page, inventoryPage, loginPage }) => {
+    // v1 asserted the opposite and failed: the app only removes the session
+    // cookie on logout. Verified live on www.saucedemo.com on 2026-10-09.
+    // The product risk (cart leaking to the next user) is tracked as EXP-001.
     await login(page, USERS.standard);
-    await page.waitForURL(/inventory/);
+    await inventoryPage.addToCart(PRODUCTS.backpack);
+    await inventoryPage.header.logout();
 
-    await page
-      .locator('.inventory_item')
-      .filter({ hasText: 'Sauce Labs Backpack' })
-      .locator('button')
-      .click();
-
-    // Confirm item is in cart
-    await expect(page.locator('.shopping_cart_badge')).toHaveText('1');
-
-    // --- Logout ---
-    await page.locator('#react-burger-menu-btn').click();
-    await page.locator('#logout_sidebar_link').waitFor({ state: 'visible' });
-    await page.locator('#logout_sidebar_link').click();
-    await page.waitForURL('/');
-
-    // --- Second session: log back in ---
-    await login(page, USERS.standard);
-    await page.waitForURL(/inventory/);
-
-    // Cart badge should NOT be visible (empty cart)
-    const badge = page.locator('.shopping_cart_badge');
-    await expect(badge).not.toBeVisible();
+    await loginPage.login(USERS.standard);
+    await inventoryPage.header.expectCartCount(1);
   });
 });

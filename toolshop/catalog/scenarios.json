@@ -1,0 +1,675 @@
+{
+  "description": "Toolshop scenario catalog — see docs/toolshop-test-catalog.md",
+  "scenarios": [
+    {
+      "id": "TPRD-001",
+      "area": "Catalog API",
+      "title": "Status endpoint",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-002",
+      "area": "Catalog API",
+      "title": "Product list contract & pagination meta",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-003",
+      "area": "Catalog API",
+      "title": "All pages = every product once",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-004",
+      "area": "Catalog API",
+      "title": "Detail consistent with list",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-005",
+      "area": "Catalog API",
+      "title": "Unknown id → 404",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-006",
+      "area": "Catalog API",
+      "title": "Search relevance",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-007",
+      "area": "Catalog API",
+      "title": "Search without match",
+      "risk": "low",
+      "priority": "P3",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-008",
+      "area": "Catalog API",
+      "title": "Sort by price asc/desc over whole catalog",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-009",
+      "area": "Catalog API",
+      "title": "Sort by name",
+      "risk": "low",
+      "priority": "P3",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-010",
+      "area": "Catalog API",
+      "title": "Filters: category, brand, price range, eco, rental",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-011",
+      "area": "Catalog API",
+      "title": "Rentals excluded from shop listing",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TPRD-012",
+      "area": "Catalog API",
+      "title": "Brands & category tree contracts",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/products.spec.ts"
+    },
+    {
+      "id": "TCRT-001",
+      "area": "Cart API",
+      "title": "Cart lifecycle",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/carts.spec.ts"
+    },
+    {
+      "id": "TCRT-002",
+      "area": "Cart API",
+      "title": "Line carries catalog price",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/carts.spec.ts"
+    },
+    {
+      "id": "TCRT-003",
+      "area": "Cart API",
+      "title": "Same product twice → one line",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/carts.spec.ts"
+    },
+    {
+      "id": "TCRT-004",
+      "area": "Cart API",
+      "title": "Line validation (x5)",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/carts.spec.ts"
+    },
+    {
+      "id": "TCRT-005",
+      "area": "Cart API",
+      "title": "Quantity boundary 99",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/carts.spec.ts"
+    },
+    {
+      "id": "TCRT-006",
+      "area": "Cart API",
+      "title": "Rental + product → 15 % bundle discount",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/carts.spec.ts"
+    },
+    {
+      "id": "TCRT-007",
+      "area": "Cart API",
+      "title": "Unknown cart → 404",
+      "risk": "low",
+      "priority": "P3",
+      "type": "api",
+      "automated": true,
+      "spec": "api/carts.spec.ts"
+    },
+    {
+      "id": "TAUTH-001",
+      "area": "Auth API",
+      "title": "Valid login → JWT",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TAUTH-002",
+      "area": "Auth API",
+      "title": "/users/me without sensitive fields",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TAUTH-003",
+      "area": "Auth API",
+      "title": "Anonymous → 401 on protected endpoints",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TAUTH-004",
+      "area": "Auth API",
+      "title": "Forged token rejected",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TAUTH-005",
+      "area": "Auth API",
+      "title": "Customer → admin endpoint 403",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TAUTH-006",
+      "area": "Auth API",
+      "title": "Logout invalidates token",
+      "risk": "high",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TAUTH-007",
+      "area": "Auth API",
+      "title": "Unknown e-mail → generic 401",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TAUTH-008",
+      "area": "Auth API",
+      "title": "Lockout after 3 failures",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TAUTH-009",
+      "area": "Auth API",
+      "title": "Registration: weak password, duplicate e-mail",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "api",
+      "automated": true,
+      "spec": "api/auth.spec.ts"
+    },
+    {
+      "id": "TPAY-001",
+      "area": "Payment API",
+      "title": "Valid details accepted (4 methods)",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/orders.spec.ts"
+    },
+    {
+      "id": "TPAY-002",
+      "area": "Payment API",
+      "title": "Invalid details rejected (x5)",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/orders.spec.ts"
+    },
+    {
+      "id": "TORD-001",
+      "area": "Orders API",
+      "title": "Guest order totals",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/orders.spec.ts"
+    },
+    {
+      "id": "TORD-002",
+      "area": "Orders API",
+      "title": "Order validation",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/orders.spec.ts"
+    },
+    {
+      "id": "TORD-003",
+      "area": "Orders API",
+      "title": "Customer sees only own invoices",
+      "risk": "high",
+      "priority": "P1",
+      "type": "api",
+      "automated": true,
+      "spec": "api/orders.spec.ts"
+    },
+    {
+      "id": "TUCAT-001",
+      "area": "Catalog UI",
+      "title": "Home = API page 1",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-002",
+      "area": "Catalog UI",
+      "title": "Search",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-003",
+      "area": "Catalog UI",
+      "title": "Search empty state",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-004",
+      "area": "Catalog UI",
+      "title": "Search reset",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-005",
+      "area": "Catalog UI",
+      "title": "Sort price asc/desc",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-006",
+      "area": "Catalog UI",
+      "title": "Category filter",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-007",
+      "area": "Catalog UI",
+      "title": "Pagination",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-008",
+      "area": "Catalog UI",
+      "title": "Product detail",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-009",
+      "area": "Catalog UI",
+      "title": "Out-of-stock blocked in UI",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCAT-010",
+      "area": "Catalog UI",
+      "title": "Language switch persists",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/catalog.spec.ts"
+    },
+    {
+      "id": "TUCRT-001",
+      "area": "Cart UI",
+      "title": "Add from product page",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/cart.spec.ts"
+    },
+    {
+      "id": "TUCRT-002",
+      "area": "Cart UI",
+      "title": "API cart displayed with totals",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/cart.spec.ts"
+    },
+    {
+      "id": "TUCRT-003",
+      "area": "Cart UI",
+      "title": "Change quantity",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/cart.spec.ts"
+    },
+    {
+      "id": "TUCRT-004",
+      "area": "Cart UI",
+      "title": "Remove lines → empty state",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/cart.spec.ts"
+    },
+    {
+      "id": "TUCRT-005",
+      "area": "Cart UI",
+      "title": "Bundle discount displayed",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/cart.spec.ts"
+    },
+    {
+      "id": "TUCRT-006",
+      "area": "Cart UI",
+      "title": "Cart survives reload",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/cart.spec.ts"
+    },
+    {
+      "id": "TUAUTH-001",
+      "area": "Auth UI",
+      "title": "Login form",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/auth.spec.ts"
+    },
+    {
+      "id": "TUAUTH-002",
+      "area": "Auth UI",
+      "title": "Required fields, no API call",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/auth.spec.ts"
+    },
+    {
+      "id": "TUAUTH-003",
+      "area": "Auth UI",
+      "title": "E-mail format",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/auth.spec.ts"
+    },
+    {
+      "id": "TUAUTH-004",
+      "area": "Auth UI",
+      "title": "Wrong password",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/auth.spec.ts"
+    },
+    {
+      "id": "TUAUTH-005",
+      "area": "Auth UI",
+      "title": "Logout protects account",
+      "risk": "high",
+      "priority": "P1",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/auth.spec.ts"
+    },
+    {
+      "id": "TUAUTH-006",
+      "area": "Auth UI",
+      "title": "API token honoured by UI",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/auth.spec.ts"
+    },
+    {
+      "id": "TUCON-001",
+      "area": "Contact UI",
+      "title": "Required fields, nothing sent",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/contact.spec.ts"
+    },
+    {
+      "id": "TUCON-002",
+      "area": "Contact UI",
+      "title": "Message ≥ 50 chars",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/contact.spec.ts"
+    },
+    {
+      "id": "TUCON-003",
+      "area": "Contact UI",
+      "title": "E-mail format",
+      "risk": "low",
+      "priority": "P3",
+      "type": "ui",
+      "automated": true,
+      "spec": "ui/contact.spec.ts"
+    },
+    {
+      "id": "TE2E-001",
+      "area": "E2E",
+      "title": "Guest purchase via UI",
+      "risk": "high",
+      "priority": "P1",
+      "type": "e2e",
+      "automated": true,
+      "spec": "e2e/checkout.spec.ts"
+    },
+    {
+      "id": "TE2E-002",
+      "area": "E2E",
+      "title": "Customer checkout, hybrid",
+      "risk": "high",
+      "priority": "P1",
+      "type": "e2e",
+      "automated": true,
+      "spec": "e2e/checkout.spec.ts"
+    },
+    {
+      "id": "TEXP-001",
+      "area": "Findings",
+      "title": "Out-of-stock addable via API",
+      "risk": "high",
+      "priority": "P1",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "api/findings.spec.ts"
+    },
+    {
+      "id": "TEXP-002",
+      "area": "Findings",
+      "title": "Unknown payment method 'successful'",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "api/findings.spec.ts"
+    },
+    {
+      "id": "TEXP-003",
+      "area": "Findings",
+      "title": "Anonymous POST /products, /brands",
+      "risk": "high",
+      "priority": "P1",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "api/findings.spec.ts"
+    },
+    {
+      "id": "TEXP-004",
+      "area": "Findings",
+      "title": "Contact: UI min 50 chars vs API no minimum",
+      "risk": "low",
+      "priority": "P3",
+      "type": "exploratory",
+      "automated": false,
+      "spec": "not automated — would write a message on the shared demo"
+    },
+    {
+      "id": "TEXP-005",
+      "area": "Findings",
+      "title": "Two 422 error formats",
+      "risk": "low",
+      "priority": "P3",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "api/findings.spec.ts"
+    },
+    {
+      "id": "TA11Y-001",
+      "area": "Accessibility",
+      "title": "axe sweep (4 pages)",
+      "risk": "medium",
+      "priority": "P2",
+      "type": "exploratory",
+      "automated": true,
+      "spec": "exploratory/accessibility.spec.ts"
+    },
+    {
+      "id": "TPERF-001",
+      "area": "Performance",
+      "title": "Response-time budgets",
+      "risk": "medium",
+      "priority": "P3",
+      "type": "api",
+      "automated": false,
+      "spec": "backlog"
+    }
+  ]
+}

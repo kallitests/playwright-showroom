@@ -1,130 +1,51 @@
 // =============================================================================
-// utils/test-data.ts — Centralized test data for all specs
+// utils/test-data.ts — Centralized, typed test data
 // =============================================================================
-// Keeping all usernames, passwords, and product data in one place means:
-//   - If SauceDemo changes a credential, you fix it in ONE file
-//   - Tests are easier to read (no magic strings scattered around)
-//   - You can import exactly what you need in each spec
+// Source of truth for users, catalog, messages and business rules.
+// Values were verified on www.saucedemo.com (live, 2026-10-09) and against the
+// official source code (github.com/saucelabs/sample-app-web).
 // =============================================================================
 
+import { DEMO_PASSWORD } from './env';
+
 // ---------------------------------------------------------------------------
-// Users
+// Users — public demo accounts listed on the SauceDemo login page
 // ---------------------------------------------------------------------------
-// SauceDemo ships with 6 built-in test users, each with different behaviors.
-// All share the same password.
-// ---------------------------------------------------------------------------
+
+export type UserKey = keyof typeof USERS;
+export type Credentials = { username: string; password: string };
 
 export const USERS = {
-  // Standard user — everything works as expected
-  standard: {
-    username: 'standard_user',
-    password: 'secret_sauce',
-  },
-
-  // This user is blocked from logging in — useful to test error states
-  lockedOut: {
-    username: 'locked_out_user',
-    password: 'secret_sauce',
-  },
-
-  // Problem user — product images are broken, some interactions misbehave
-  problem: {
-    username: 'problem_user',
-    password: 'secret_sauce',
-  },
-
-  // Performance glitch user — login takes several seconds
-  performanceGlitch: {
-    username: 'performance_glitch_user',
-    password: 'secret_sauce',
-  },
-
-  // Error user — some cart and checkout actions throw errors
-  error: {
-    username: 'error_user',
-    password: 'secret_sauce',
-  },
-
-  // Visual user — subtle visual differences vs standard user
-  visual: {
-    username: 'visual_user',
-    password: 'secret_sauce',
-  },
-} as const;
-
-// ---------------------------------------------------------------------------
-// Invalid credentials — used in negative test scenarios
-// ---------------------------------------------------------------------------
+  standard: { username: 'standard_user', password: DEMO_PASSWORD },
+  lockedOut: { username: 'locked_out_user', password: DEMO_PASSWORD },
+  problem: { username: 'problem_user', password: DEMO_PASSWORD },
+  performanceGlitch: { username: 'performance_glitch_user', password: DEMO_PASSWORD },
+  error: { username: 'error_user', password: DEMO_PASSWORD },
+  visual: { username: 'visual_user', password: DEMO_PASSWORD },
+} as const satisfies Record<string, Credentials>;
 
 export const INVALID_CREDENTIALS = {
-  wrongPassword: {
-    username: 'standard_user',
-    password: 'wrong_password',
-  },
-  unknownUser: {
-    username: 'ghost_user',
-    password: 'secret_sauce',
-  },
-  empty: {
-    username: '',
-    password: '',
-  },
-  emptyPasswordOnly: {
-    username: 'standard_user',
-    password: '',
-  },
-} as const;
+  wrongPassword: { username: 'standard_user', password: 'wrong_password' },
+  unknownUser: { username: 'ghost_user', password: DEMO_PASSWORD },
+  empty: { username: '', password: '' },
+  emptyPasswordOnly: { username: 'standard_user', password: '' },
+  emptyUsernameOnly: { username: '', password: DEMO_PASSWORD },
+  caseSensitiveUsername: { username: 'Standard_User', password: DEMO_PASSWORD },
+  trailingSpaceUsername: { username: 'standard_user ', password: DEMO_PASSWORD },
+  sqlInjectionLike: { username: "' OR '1'='1", password: "' OR '1'='1" },
+} as const satisfies Record<string, Credentials>;
 
 // ---------------------------------------------------------------------------
-// Expected error messages — assert the exact copy shown in the UI
+// UI messages (exact copy)
 // ---------------------------------------------------------------------------
 
 export const ERROR_MESSAGES = {
-  // Shown when username or password is wrong
-  invalidCredentials:
-    'Epic sadface: Username and password do not match any user in this service',
-
-  // Shown when username field is empty
+  invalidCredentials: 'Epic sadface: Username and password do not match any user in this service',
   usernameRequired: 'Epic sadface: Username is required',
-
-  // Shown when password field is empty
   passwordRequired: 'Epic sadface: Password is required',
-
-  // Shown for the locked-out user
-  lockedOut:
-    'Epic sadface: Sorry, this user has been locked out.',
+  lockedOut: 'Epic sadface: Sorry, this user has been locked out.',
+  protectedRoute: (path: string) => `Epic sadface: You can only access '${path}' when you are logged in.`,
 } as const;
-
-// ---------------------------------------------------------------------------
-// Checkout form data — used in e2e checkout flow tests
-// ---------------------------------------------------------------------------
-
-export const CHECKOUT_INFO = {
-  valid: {
-    firstName: 'Jane',
-    lastName: 'Doe',
-    postalCode: '75001',
-  },
-  missingFirstName: {
-    firstName: '',
-    lastName: 'Doe',
-    postalCode: '75001',
-  },
-  missingLastName: {
-    firstName: 'Jane',
-    lastName: '',
-    postalCode: '75001',
-  },
-  missingPostalCode: {
-    firstName: 'Jane',
-    lastName: 'Doe',
-    postalCode: '',
-  },
-} as const;
-
-// ---------------------------------------------------------------------------
-// Expected checkout error messages
-// ---------------------------------------------------------------------------
 
 export const CHECKOUT_ERRORS = {
   firstNameRequired: 'Error: First Name is required',
@@ -132,13 +53,35 @@ export const CHECKOUT_ERRORS = {
   postalCodeRequired: 'Error: Postal Code is required',
 } as const;
 
+export const CONFIRMATION = {
+  header: 'Thank you for your order!',
+  text: 'Your order has been dispatched, and will arrive just as fast as the pony can get there!',
+} as const;
+
 // ---------------------------------------------------------------------------
-// URLs — relative paths (baseURL is set in playwright.config.ts)
+// Checkout form data
+// ---------------------------------------------------------------------------
+
+export type CheckoutInfo = { firstName: string; lastName: string; postalCode: string };
+
+export const CHECKOUT_INFO = {
+  valid: { firstName: 'Jane', lastName: 'Doe', postalCode: '75001' },
+  missingFirstName: { firstName: '', lastName: 'Doe', postalCode: '75001' },
+  missingLastName: { firstName: 'Jane', lastName: '', postalCode: '75001' },
+  missingPostalCode: { firstName: 'Jane', lastName: 'Doe', postalCode: '' },
+  // Edge data: accepted by the app (no format validation) — documented risk
+  unicode: { firstName: 'Zoë', lastName: 'Ñúñez-O’Brien', postalCode: 'SW1A 1AA' },
+  whitespaceOnly: { firstName: ' ', lastName: ' ', postalCode: ' ' },
+} as const satisfies Record<string, CheckoutInfo>;
+
+// ---------------------------------------------------------------------------
+// Routes (relative to baseURL)
 // ---------------------------------------------------------------------------
 
 export const ROUTES = {
   login: '/',
   inventory: '/inventory.html',
+  productDetail: (id: number) => `/inventory-item.html?id=${id}`,
   cart: '/cart.html',
   checkoutStepOne: '/checkout-step-one.html',
   checkoutStepTwo: '/checkout-step-two.html',
@@ -146,8 +89,10 @@ export const ROUTES = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Product names available in the inventory
+// Catalog — reference data (id = SauceDemo internal item id)
 // ---------------------------------------------------------------------------
+
+export type Product = { id: number; name: ProductName; price: number };
 
 export const PRODUCTS = {
   backpack: 'Sauce Labs Backpack',
@@ -158,12 +103,37 @@ export const PRODUCTS = {
   tshirtRed: 'Test.allTheThings() T-Shirt (Red)',
 } as const;
 
-// Prices as displayed in the UI (string with $ sign)
-export const PRODUCT_PRICES = {
-  [PRODUCTS.backpack]: '$29.99',
-  [PRODUCTS.bikeLight]: '$9.99',
-  [PRODUCTS.boltTshirt]: '$15.99',
-  [PRODUCTS.fleeceJacket]: '$49.99',
-  [PRODUCTS.onesie]: '$7.99',
-  [PRODUCTS.tshirtRed]: '$15.99',
-} as const;
+export type ProductName = (typeof PRODUCTS)[keyof typeof PRODUCTS];
+
+export const CATALOG: readonly Product[] = [
+  { id: 4, name: PRODUCTS.backpack, price: 29.99 },
+  { id: 0, name: PRODUCTS.bikeLight, price: 9.99 },
+  { id: 1, name: PRODUCTS.boltTshirt, price: 15.99 },
+  { id: 5, name: PRODUCTS.fleeceJacket, price: 49.99 },
+  { id: 2, name: PRODUCTS.onesie, price: 7.99 },
+  { id: 3, name: PRODUCTS.tshirtRed, price: 15.99 },
+];
+
+/** Kept for backward compatibility with v1 specs. */
+export const PRODUCT_PRICES: Record<ProductName, string> = Object.fromEntries(
+  CATALOG.map((p) => [p.name, `$${p.price.toFixed(2)}`]),
+) as Record<ProductName, string>;
+
+export function productByName(name: ProductName): Product {
+  const product = CATALOG.find((p) => p.name === name);
+  if (!product) throw new Error(`Unknown product: ${name}`);
+  return product;
+}
+
+// ---------------------------------------------------------------------------
+// Business rules
+// ---------------------------------------------------------------------------
+
+/** Tax applied at checkout step two (8 %, rounded to cents). */
+export const TAX_RATE = 0.08;
+
+/** Session cookie written by SauceDemo on login (expires after 10 minutes). */
+export const SESSION_COOKIE = 'session-username';
+
+/** localStorage key holding the cart (array of item ids). */
+export const CART_STORAGE_KEY = 'cart-contents';

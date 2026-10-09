@@ -1,0 +1,144 @@
+name: Toolshop
+
+# Second application of the showroom: Toolshop (UI + real REST API).
+#   push / PR  → API tests (no browser) + UI smoke on Chromium
+#   PR         → full UI/E2E suite on Chromium, Firefox, WebKit
+#   nightly    → full suite on prod, and the API suite on the "with-bugs"
+#                deployment (expected to FAIL: proves the suite detects defects)
+#   manual     → choose environment and grep
+
+on:
+  push:
+    branches: [main, develop]
+    paths: ['toolshop/**', 'playwright.toolshop.config.ts', 'reporters/**', 'package*.json', '.github/workflows/toolshop.yml']
+  pull_request:
+    branches: [main]
+    paths: ['toolshop/**', 'playwright.toolshop.config.ts', 'reporters/**', 'package*.json', '.github/workflows/toolshop.yml']
+  schedule:
+    - cron: '43 2 * * *' # 02:43 UTC daily
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Toolshop deployment'
+        type: choice
+        options: [prod, with-bugs]
+        default: prod
+      grep:
+        description: 'Optional --grep filter (e.g. @critical, TCRT-)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: toolshop-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  TOOLSHOP_ENV: ${{ inputs.environment || 'prod' }}
+  METRICS_DIR: metrics-toolshop
+
+jobs:
+  api-and-smoke:
+    name: API + UI smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint && npm run typecheck
+      - run: npx playwright install --with-deps chromium
+      - name: API tests + UI smoke
+        run: >
+          npx playwright test -c playwright.toolshop.config.ts --project=api --project=chromium
+          ${{ inputs.grep && format('--grep "{0}"', inputs.grep) || '--grep "@api|@smoke"' }}
+      - name: Metrics → job summary
+        if: always()
+        run: node scripts/metrics/print-summary.mjs || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: toolshop-smoke-report
+          path: |
+            playwright-report-toolshop/
+            metrics-toolshop/
+            test-results-toolshop/junit.xml
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: toolshop-smoke-failure-evidence
+          path: test-results-toolshop/
+          retention-days: 14
+
+  ui-cross-browser:
+    name: UI/E2E (${{ matrix.browser }})
+    needs: api-and-smoke
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: UI / E2E / exploratory
+        run: >
+          npx playwright test -c playwright.toolshop.config.ts --project=${{ matrix.browser }}
+          ${{ inputs.grep && format('--grep "{0}"', inputs.grep) || '' }}
+      - name: Slack / Teams alert (nightly only)
+        if: always() && github.event_name == 'schedule'
+        run: node scripts/notify/notify.mjs
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: toolshop-${{ matrix.browser }}-report
+          path: |
+            playwright-report-toolshop/
+            metrics-toolshop/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: toolshop-${{ matrix.browser }}-failure-evidence
+          path: test-results-toolshop/
+          retention-days: 14
+
+  defect-detection:
+    name: Defect detection on "with-bugs" (expected to fail)
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    continue-on-error: true
+    env:
+      TOOLSHOP_ENV: with-bugs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: API suite against the buggy deployment
+        run: npx playwright test -c playwright.toolshop.config.ts --project=api
+      - name: Detected defects → job summary
+        if: always()
+        run: node scripts/metrics/print-summary.mjs || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: toolshop-with-bugs-report
+          path: |
+            playwright-report-toolshop/
+            metrics-toolshop/
+          retention-days: 30

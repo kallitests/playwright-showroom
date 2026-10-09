@@ -26,7 +26,7 @@ services:
       context: .
       dockerfile: Dockerfile
     # Override the default CMD to run only smoke tests
-    command: npx playwright test tests/smoke/ --project=chromium
+    command: npx playwright test --project=chromium --grep @smoke
     volumes:
       # Mount the test results directory so reports are available on your host
       # After the run: open playwright-report/index.html in your browser
@@ -43,7 +43,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    command: npx playwright test tests/e2e/ --project=chromium
+    command: npx playwright test tests/e2e/ tests/ui/ --project=chromium
     volumes:
       - ./playwright-report:/app/playwright-report
       - ./test-results:/app/test-results
@@ -87,7 +87,7 @@ services:
       context: .
       dockerfile: Dockerfile
     # No --project flag = runs all configured projects (chromium, firefox, webkit)
-    command: npx playwright test
+    command: npx playwright test --project=chromium --project=firefox --project=webkit
     volumes:
       - ./playwright-report:/app/playwright-report
       - ./test-results:/app/test-results

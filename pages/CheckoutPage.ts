@@ -1,138 +1,101 @@
 // =============================================================================
-// pages/CartPage.ts — Page Object Model for the cart page
+// pages/CheckoutPage.ts — Checkout: information → overview → complete
+// =============================================================================
+//   Step 1: /checkout-step-one.html — personal information form
+//   Step 2: /checkout-step-two.html — order overview (subtotal, tax, total)
+//   Step 3: /checkout-complete.html — confirmation (+ optional PDF receipt)
 // =============================================================================
 
-import { Page, Locator, expect } from '@playwright/test';
-
-export class CartPage {
-  readonly page: Page;
-
-  // All cart item rows
-  readonly cartItems: Locator;
-
-  // The "Continue Shopping" button
-  readonly continueShoppingButton: Locator;
-
-  // The "Checkout" button
-  readonly checkoutButton: Locator;
-
-  constructor(page: Page) {
-    this.page = page;
-    this.cartItems = page.locator('.cart_item');
-    this.continueShoppingButton = page.locator('[data-test="continue-shopping"]');
-    this.checkoutButton = page.locator('[data-test="checkout"]');
-  }
-
-  async goto(): Promise<void> {
-    await this.page.goto('/cart.html');
-  }
-
-  // Returns the number of items currently in the cart
-  async getItemCount(): Promise<number> {
-    return this.cartItems.count();
-  }
-
-  // Returns the name of a cart item by its index (0-based)
-  async getItemName(index: number): Promise<string> {
-    return (
-      (await this.cartItems
-        .nth(index)
-        .locator('.inventory_item_name')
-        .textContent()) ?? ''
-    );
-  }
-
-  // Removes an item from the cart by its product name
-  async removeItem(productName: string): Promise<void> {
-    const item = this.cartItems.filter({ hasText: productName });
-    await item.locator('button').click();
-  }
-
-  async clickCheckout(): Promise<void> {
-    await this.checkoutButton.click();
-    await expect(this.page).toHaveURL(/checkout-step-one/);
-  }
-
-  async clickContinueShopping(): Promise<void> {
-    await this.continueShoppingButton.click();
-    await expect(this.page).toHaveURL(/inventory/);
-  }
-
-  async expectLoaded(): Promise<void> {
-    await expect(this.page).toHaveURL(/cart/);
-  }
-}
-
-// =============================================================================
-// pages/CheckoutPage.ts — Page Object Model for the multi-step checkout
-// =============================================================================
-// SauceDemo has 3 checkout steps:
-//   Step 1: /checkout-step-one.html — Personal info form
-//   Step 2: /checkout-step-two.html — Order summary
-//   Step 3: /checkout-complete.html — Confirmation
-// =============================================================================
+import { expect, type Locator, type Page } from '@playwright/test';
+import { Header } from './components/Header';
+import { parsePrice } from '../utils/helpers';
+import { CONFIRMATION, type CheckoutInfo } from '../utils/test-data';
 
 export class CheckoutPage {
-  readonly page: Page;
+  readonly header: Header;
 
-  // Step 1 — Personal info inputs
+  // Step 1
   readonly firstNameInput: Locator;
   readonly lastNameInput: Locator;
   readonly postalCodeInput: Locator;
   readonly continueButton: Locator;
-
-  // Step 1 — Error message
+  readonly cancelButton: Locator;
   readonly errorMessage: Locator;
 
-  // Step 2 — Order summary
-  readonly summaryItems: Locator;
+  // Step 2
+  readonly summaryItemNames: Locator;
+  readonly subtotalLabel: Locator;
+  readonly taxLabel: Locator;
   readonly totalPrice: Locator;
+  readonly paymentInfo: Locator;
+  readonly shippingInfo: Locator;
   readonly finishButton: Locator;
 
-  // Step 3 — Confirmation
+  // Step 3
   readonly confirmationHeader: Locator;
+  readonly confirmationText: Locator;
+  readonly backHomeButton: Locator;
+  readonly pdfButton: Locator;
 
-  constructor(page: Page) {
-    this.page = page;
+  constructor(readonly page: Page) {
+    this.header = new Header(page);
 
-    // Step 1 inputs — identified by data-test attributes
-    this.firstNameInput = page.locator('[data-test="firstName"]');
-    this.lastNameInput = page.locator('[data-test="lastName"]');
-    this.postalCodeInput = page.locator('[data-test="postalCode"]');
-    this.continueButton = page.locator('[data-test="continue"]');
-    this.errorMessage = page.locator('[data-test="error"]');
+    this.firstNameInput = page.getByTestId('firstName');
+    this.lastNameInput = page.getByTestId('lastName');
+    this.postalCodeInput = page.getByTestId('postalCode');
+    this.continueButton = page.getByTestId('continue');
+    this.cancelButton = page.getByTestId('cancel');
+    this.errorMessage = page.getByTestId('error');
 
-    // Step 2 elements
-    this.summaryItems = page.locator('.summary_info');
-    this.totalPrice = page.locator('.summary_total_label');
-    this.finishButton = page.locator('[data-test="finish"]');
+    this.summaryItemNames = page.getByTestId('cart-list').getByTestId('inventory-item-name');
+    this.subtotalLabel = page.getByTestId('subtotal-label');
+    this.taxLabel = page.getByTestId('tax-label');
+    this.totalPrice = page.getByTestId('total-label');
+    this.paymentInfo = page.getByTestId('payment-info-value');
+    this.shippingInfo = page.getByTestId('shipping-info-value');
+    this.finishButton = page.getByTestId('finish');
 
-    // Step 3 confirmation text
-    this.confirmationHeader = page.locator('.complete-header');
+    this.confirmationHeader = page.getByTestId('complete-header');
+    this.confirmationText = page.getByTestId('complete-text');
+    this.backHomeButton = page.getByTestId('back-to-products');
+    this.pdfButton = page.getByTestId('generate-pdf-order');
   }
 
-  // ----- Step 1 actions -----
+  // ----- Step 1 -----
 
-  async fillPersonalInfo(
-    firstName: string,
-    lastName: string,
-    postalCode: string
-  ): Promise<void> {
-    await this.firstNameInput.fill(firstName);
-    await this.lastNameInput.fill(lastName);
-    await this.postalCodeInput.fill(postalCode);
+  async fillPersonalInfo(info: CheckoutInfo): Promise<void>;
+  async fillPersonalInfo(firstName: string, lastName: string, postalCode: string): Promise<void>;
+  async fillPersonalInfo(a: CheckoutInfo | string, lastName = '', postalCode = ''): Promise<void> {
+    const info = typeof a === 'string' ? { firstName: a, lastName, postalCode } : a;
+    await this.firstNameInput.fill(info.firstName);
+    await this.lastNameInput.fill(info.lastName);
+    await this.postalCodeInput.fill(info.postalCode);
   }
 
   async clickContinue(): Promise<void> {
     await this.continueButton.click();
   }
 
-  async expectStepOneError(message: string): Promise<void> {
-    await expect(this.errorMessage).toBeVisible();
-    await expect(this.errorMessage).toContainText(message);
+  async submitInfo(info: CheckoutInfo): Promise<void> {
+    await this.fillPersonalInfo(info);
+    await this.clickContinue();
+    await expect(this.page).toHaveURL(/checkout-step-two\.html/);
   }
 
-  // ----- Step 2 actions -----
+  async expectStepOneError(message: string): Promise<void> {
+    await expect(this.errorMessage).toHaveText(message);
+    await expect(this.page).toHaveURL(/checkout-step-one\.html/);
+  }
+
+  // ----- Step 2 -----
+
+  async totals(): Promise<{ subtotal: number; tax: number; total: number }> {
+    return {
+      subtotal: parsePrice(await this.subtotalLabel.textContent()),
+      tax: parsePrice(await this.taxLabel.textContent()),
+      total: parsePrice(await this.totalPrice.textContent()),
+    };
+  }
 
   async getTotalPrice(): Promise<string> {
     return (await this.totalPrice.textContent()) ?? '';
@@ -140,15 +103,13 @@ export class CheckoutPage {
 
   async clickFinish(): Promise<void> {
     await this.finishButton.click();
-    await expect(this.page).toHaveURL(/checkout-complete/);
+    await expect(this.page).toHaveURL(/checkout-complete\.html/);
   }
 
-  // ----- Step 3 assertion -----
+  // ----- Step 3 -----
 
   async expectOrderConfirmed(): Promise<void> {
-    await expect(this.confirmationHeader).toBeVisible();
-    await expect(this.confirmationHeader).toContainText(
-      'Thank you for your order!'
-    );
+    await expect(this.confirmationHeader).toHaveText(CONFIRMATION.header);
+    await expect(this.confirmationText).toHaveText(CONFIRMATION.text);
   }
 }

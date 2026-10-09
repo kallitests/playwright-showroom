@@ -1,76 +1,83 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices, type ReporterDescription } from '@playwright/test';
+import { BASE_URL, IS_CI, IS_LOCAL_TARGET, LOCAL_PORT } from './utils/env';
 
-// ---------------------------------------------------------------------------
+// =============================================================================
 // Playwright configuration
-// ---------------------------------------------------------------------------
-// This file controls how Playwright runs all tests in this repo.
-// It sets the base URL, timeouts, reporters, and browser projects.
-// ---------------------------------------------------------------------------
+// =============================================================================
+// - Target URL comes from the environment (BASE_URL / LOCAL_SAUCEDEMO), see utils/env.ts
+// - Suites are organised by folder (smoke, ui, e2e, api, regression, exploratory)
+//   AND by tags (@smoke, @critical, @regression, @known-issue ...) so that CI can
+//   select tests by intent rather than by location.
+// - Evidence (trace, screenshot, video) is kept for failures only.
+// =============================================================================
+
+const reporters: ReporterDescription[] = [
+  [IS_CI ? 'github' : 'list'],
+  ['html', { open: 'never', outputFolder: 'playwright-report' }],
+  ['junit', { outputFile: 'test-results/junit.xml' }], // Azure DevOps / any CI
+  ['json', { outputFile: 'test-results/results.json' }],
+  ['./reporters/metrics-reporter.ts', { outputDir: 'metrics' }],
+];
+
+// Optional: Azure DevOps Test Plans reporter — enabled ONLY when configured.
+// See docs/architecture.md § Azure DevOps. The package is not a hard dependency.
+if (process.env.AZURE_DEVOPS_TOKEN && process.env.AZURE_DEVOPS_PLAN_ID) {
+  try {
+    require.resolve('@alex_neo/playwright-azure-reporter');
+    reporters.push([
+      '@alex_neo/playwright-azure-reporter',
+      {
+        orgUrl: process.env.AZURE_DEVOPS_ORG_URL,
+        token: process.env.AZURE_DEVOPS_TOKEN,
+        planId: Number(process.env.AZURE_DEVOPS_PLAN_ID),
+        projectName: process.env.AZURE_DEVOPS_PROJECT,
+        environment: process.env.TEST_ENVIRONMENT ?? 'saucedemo',
+        testRunTitle: `Playwright Showroom — ${new Date().toISOString()}`,
+        publishTestResultsMode: 'testRun',
+        uploadAttachments: true,
+      },
+    ]);
+  } catch {
+    console.warn('[config] AZURE_DEVOPS_* set but @alex_neo/playwright-azure-reporter is not installed — skipped.');
+  }
+}
 
 export default defineConfig({
-  // Root folder where Playwright looks for test files
   testDir: './tests',
-
-  // Run all tests in parallel (each file gets its own worker)
   fullyParallel: true,
+  forbidOnly: IS_CI,
+  // One retry in CI: a test that passes on retry is reported as "flaky", which
+  // feeds the flakiness metric instead of hiding the problem.
+  retries: IS_CI ? 1 : 0,
+  workers: IS_CI ? 2 : undefined,
+  timeout: 30_000,
+  expect: { timeout: 7_000 },
+  reporter: reporters,
 
-  // Fail the CI build if any test.only() was accidentally committed
-  forbidOnly: !!process.env.CI,
-
-  // Retry failed tests once in CI to reduce flakiness noise
-  retries: process.env.CI ? 1 : 0,
-
-  // Number of parallel workers (undefined = auto-detect CPU count)
-  workers: process.env.CI ? 2 : undefined,
-
-  // Reporters: HTML report for humans, list output for the terminal
-  reporter: [
-    ['html', { open: 'never' }], // generates playwright-report/index.html
-    ['list'],                     // prints each test result inline
-  ],
-
-  // Global settings applied to every test unless overridden in the spec
   use: {
-    // The base URL — all page.goto('/inventory') calls are relative to this
-    baseURL: 'https://www.saucedemo.com',
-
-    // Capture a trace on the first retry of a failing test
-    // Open with: npx playwright show-trace trace.zip
-    trace: 'on-first-retry',
-
-    // Record a video only when a test fails
-    video: 'on-first-retry',
-
-    // Take a screenshot automatically on test failure
+    baseURL: BASE_URL,
+    testIdAttribute: 'data-test', // SauceDemo exposes data-test attributes
+    trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
-
-    // Default timeout for each action (click, fill, etc.)
+    video: 'retain-on-failure',
     actionTimeout: 10_000,
-
-    // Default timeout for each assertion (expect(...).toBe...)
     navigationTimeout: 15_000,
   },
 
-  // ---------------------------------------------------------------------------
-  // Projects — each project runs the full test suite in a different browser
-  // ---------------------------------------------------------------------------
+  // Local build of the official SauceDemo sources (offline / proxy-restricted runs)
+  webServer: IS_LOCAL_TARGET
+    ? {
+        command: `node scripts/local-saucedemo/serve.mjs .local-saucedemo/sample-app-web/build ${LOCAL_PORT}`,
+        url: BASE_URL,
+        reuseExistingServer: true,
+        timeout: 30_000,
+      }
+    : undefined,
+
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-    // Mobile viewports
-    {
-      name: 'mobile-chrome',
-      use: { ...devices['Pixel 5'] },
-    },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'mobile-chrome', use: { ...devices['Pixel 5'] } },
   ],
 });

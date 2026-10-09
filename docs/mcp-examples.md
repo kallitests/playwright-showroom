@@ -1,178 +1,116 @@
-# Playwright MCP — Usage Guide
+# Playwright MCP — AI-assisted exploration → deterministic CLI tests
 
-## What is Playwright MCP?
+Playwright MCP ([microsoft/playwright-mcp](https://github.com/microsoft/playwright-mcp), npm `@playwright/mcp`) is a Model Context Protocol server that lets an AI assistant (Claude, Copilot, Cursor…) drive a real browser through tools such as `browser_navigate`, `browser_snapshot` (accessibility tree), `browser_click`, `browser_type`, `browser_evaluate`, `browser_console_messages` and `browser_network_requests`.
 
-Playwright MCP (Model Context Protocol) is a server that exposes Playwright's
-browser automation capabilities to AI assistants like Claude.
+**Where it fits in this project — three clearly separated layers:**
 
-Instead of writing test code, you describe what you want in plain English,
-and the AI uses Playwright to do it — navigate, click, fill forms, take
-screenshots, extract data.
+| Layer | Tool | Deterministic? | In CI? |
+|---|---|---|---|
+| Automated tests | Playwright CLI (`npx playwright test`) | Yes | Yes — the only thing that gates a merge |
+| Assisted exploration & investigation | Playwright MCP + AI assistant | No (LLM-driven) | No |
+| Experimental AI testing | Ad-hoc prompts, AI log analysis (`prompts/log-error-analyzer/`) | No | No — advisory only |
 
-**Official repo:** https://github.com/microsoft/playwright-mcp
+MCP output is *never* a test result. It produces **knowledge** (risks, repro steps, locators) that a human turns into CLI tests.
 
 ---
 
-## Installation
+## 1. Setup
 
-### 1. Install the MCP server globally
+The repo ships a project-scoped config in [`.mcp.json`](../.mcp.json) (read by Claude Code and other MCP clients):
+
+```json
+{ "mcpServers": { "playwright": { "command": "npx",
+  "args": ["@playwright/mcp@0.0.83", "--isolated", "--test-id-attribute=data-test",
+           "--output-dir=mcp-output", "--save-session"] } } }
+```
+
+- `--isolated`: in-memory profile — every session starts clean (no leftover cart/cookie).
+- `--test-id-attribute=data-test`: the assistant proposes `getByTestId(...)` locators matching SauceDemo's attributes and this repo's config.
+- `--save-session` + `--output-dir`: keeps the session log for the exploration report (`mcp-output/` is git-ignored if you add it to `.gitignore`).
+
+Other clients:
 
 ```bash
-npm install -g @playwright/mcp
+# Claude Code (user-level)
+claude mcp add playwright npx @playwright/mcp@latest
 ```
 
-### 2. Configure Claude Desktop
-
-Add this to your `claude_desktop_config.json`:
-
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "command": "npx",
-      "args": ["@playwright/mcp@latest"]
-    }
-  }
-}
-```
-
-### 3. Restart Claude Desktop
-
-After saving the config, restart Claude Desktop completely.
-You should see a browser icon or "playwright" listed in the tools panel.
-
----
-
-## Usage — Natural Language Examples
-
-Once configured, you can ask Claude to automate SauceDemo using plain English.
-
-### Example 1: Log in and take a screenshot
-
-> "Navigate to https://www.saucedemo.com and log in with username
-> `standard_user` and password `secret_sauce`. Then take a screenshot
-> of the inventory page."
-
-Claude will:
-1. Open a browser window
-2. Navigate to the login page
-3. Fill the username and password fields
-4. Click Login
-5. Take a screenshot of `/inventory.html`
-
----
-
-### Example 2: Extract all product names and prices
-
-> "Go to SauceDemo, log in as standard_user / secret_sauce, and extract
-> all product names and prices from the inventory page as a JSON list."
-
-Claude will return something like:
-
-```json
-[
-  { "name": "Sauce Labs Backpack", "price": "$29.99" },
-  { "name": "Sauce Labs Bike Light", "price": "$9.99" },
-  { "name": "Sauce Labs Bolt T-Shirt", "price": "$15.99" },
-  { "name": "Sauce Labs Fleece Jacket", "price": "$49.99" },
-  { "name": "Sauce Labs Onesie", "price": "$7.99" },
-  { "name": "Test.allTheThings() T-Shirt (Red)", "price": "$15.99" }
-]
+```jsonc
+// Claude Desktop — claude_desktop_config.json
+{ "mcpServers": { "playwright": { "command": "npx", "args": ["@playwright/mcp@latest", "--isolated"] } } }
 ```
 
 ---
 
-### Example 3: Complete a purchase
+## 2. Workflow 1 — Explore and map risks
 
-> "Log in to SauceDemo as standard_user / secret_sauce, add the most
-> expensive product to the cart, proceed to checkout, fill in the form
-> with name Jane Doe and postal code 75001, and complete the order.
-> Tell me what the confirmation message says."
+Prompt:
 
----
+> Using the Playwright browser, open https://www.saucedemo.com and log in as standard_user / secret_sauce. Map every page and interactive element (use data-test attributes). For each page, list what state it reads or writes (cookies, localStorage, URL). Then propose the 10 riskiest scenarios for an e-commerce site, ranked by impact × likelihood, as a table with ID, risk and repro idea.
 
-### Example 4: Test the locked-out user scenario
+What a good session yields (observed on 2026-10-09):
+- session = cookie `session-username`, cart = `localStorage["cart-contents"]` (array of item ids);
+- 6 products, ids 0–5 (`item-4-title-link` = Backpack…), tax 8 %;
+- risk ideas: logout vs storage, deep links, empty cart checkout, whitespace input.
 
-> "Try to log in to SauceDemo with username `locked_out_user` and
-> password `secret_sauce`. What error message appears?"
+→ Becomes entries in `catalog/scenarios.json` and charters in `docs/exploratory-testing.md`.
 
----
+## 3. Workflow 2 — Investigate an anomaly
 
-### Example 5: Compare two users
+Prompt (the investigation that produced **EXP-001**):
 
-> "Log in to SauceDemo as problem_user / secret_sauce and take a
-> screenshot of the inventory page. Then log out and log back in as
-> standard_user / secret_sauce and take another screenshot. What visual
-> differences do you notice?"
+> Log in as standard_user, add "Sauce Labs Backpack" to the cart, log out, then log in as visual_user. What does the cart badge show? Read document.cookie and localStorage after each step and report them as a table. Is the cart tied to the user?
 
----
+Evidence collected live:
 
-## Playwright MCP vs Playwright CLI — When to use which?
+| Step | cookie | `cart-contents` | badge |
+|---|---|---|---|
+| standard_user adds Backpack | `session-username=standard_user` | `[4]` | 1 |
+| Logout | *(empty)* | `[4]` | — |
+| visual_user logs in | `session-username=visual_user` | `[4]` | **1** ← leak |
 
-| Use case | Tool |
+Follow-up prompt: *"Check with browser_network_requests whether GET /inventory.html returns 200."* → revealed **EXP-002** (HTTP 404 + SPA redirect on every deep link).
+
+## 4. Workflow 3 — Convert findings into deterministic CLI tests
+
+Prompt:
+
+> Write a Playwright Test (TypeScript) for the cart-leak scenario using this repo's fixtures (`import { test, expect } from '../../fixtures'`), page objects (`inventoryPage.header.logout()`, `loginPage.login(USERS.visual)`) and `getByTestId`. Assert the expected behaviour (empty cart) and mark the test with `test.fail()` referencing EXP-001. No waitForTimeout.
+
+Then the human review checklist before committing (this is where MCP output becomes trustworthy):
+
+- [ ] Locators are `getByTestId` / `getByRole`, no CSS classes or nth-child.
+- [ ] Preconditions use fixtures (cookie login, `seedCart`) instead of replaying clicks.
+- [ ] Web-first assertions only; `npm run lint` passes (`no-wait-for-timeout`, `prefer-web-first-assertions`).
+- [ ] Scenario ID in the title, added to `catalog/scenarios.json`, catalog doc regenerated.
+- [ ] Run it 5× in a row: `npx playwright test -g EXP-001 --repeat-each=5`.
+- [ ] Verify it fails for the right reason (temporarily break the expectation).
+
+Result: [`tests/exploratory/findings.spec.ts`](../tests/exploratory/findings.spec.ts).
+
+## 5. Useful one-shot prompts
+
+| Goal | Prompt |
 |---|---|
-| Automated tests in CI/CD | **Playwright CLI** (`npx playwright test`) |
-| Exploratory testing | **Playwright MCP** (ask Claude) |
-| Quick one-off automation | **Playwright MCP** |
-| Regression suite | **Playwright CLI** |
-| Generating test code from observation | **Playwright CLI** (`codegen`) |
-| Data extraction / scraping | **Playwright MCP** |
-| Complex assertion logic | **Playwright CLI** |
+| Data extraction | "Log in, extract all product names and prices as JSON." |
+| Persona comparison | "Compare problem_user and standard_user on the inventory page: list every visual or functional difference." |
+| Console / network audit | "Perform a full purchase and report console errors and any request with status ≥ 400." |
+| Accessibility smell test | "Navigate the login and checkout forms with the keyboard only and list anything unreachable or unlabeled." |
+| Locator help | "Give me the most robust Playwright locator for the sort dropdown, using data-test." |
+
+## 6. Limits (stated honestly)
+
+- LLM-driven sessions are non-deterministic and can hallucinate a conclusion — always confirm with evidence (storage dump, network log, screenshot) and a CLI test.
+- MCP is never part of the CI gate.
+- Do not paste real credentials or production data into prompts; SauceDemo uses public demo accounts only.
 
 ---
 
-## Useful Playwright CLI commands
+## Appendix — CLI commands used alongside MCP
 
 ```bash
-# Run all tests
-npx playwright test
-
-# Run only smoke tests
-npx playwright test tests/smoke/
-
-# Run in headed mode (see the browser)
-npx playwright test --headed
-
-# Open the interactive UI mode
-npx playwright test --ui
-
-# Generate test code by recording browser actions
-npx playwright codegen https://www.saucedemo.com
-
-# Show the last HTML report
-npx playwright show-report
-
-# Run tests matching a title pattern
-npx playwright test --grep "checkout"
-
-# Run tests in a specific browser
-npx playwright test --project=firefox
-
-# Debug a specific test interactively
-npx playwright test tests/smoke/auth.spec.ts --debug
-```
-
----
-
-## Viewing test results
-
-After running tests, open the HTML report:
-
-```bash
-npx playwright show-report
-```
-
-This opens an interactive report in your browser showing:
-- Pass/fail status per test
-- Screenshots on failure
-- Video recordings on failure  
-- Full trace files for debugging
-
-To open a trace file manually:
-
-```bash
-npx playwright show-trace test-results/trace.zip
+npx playwright codegen https://www.saucedemo.com      # record → raw script
+npx playwright test -g EXP-001 --headed                # watch a repro
+npx playwright test -g EXP-001 --debug                 # step through with the inspector
+npx playwright show-trace test-results/<test>/trace.zip
 ```

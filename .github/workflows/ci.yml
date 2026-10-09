@@ -1,74 +1,148 @@
-name: Playwright Tests
+name: CI
+
+# Fast feedback on every push / PR, full cross-browser run on PRs.
+# Target: the live site by default; "local" builds the official SauceDemo
+# sources inside the runner (use it if www.saucedemo.com is down/unreachable).
 
 on:
   push:
     branches: [main, develop]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Application under test'
+        type: choice
+        options: [live, local]
+        default: live
+      grep:
+        description: 'Optional --grep filter (e.g. @critical, @checkout, AUTH-0)'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  LOCAL_SAUCEDEMO: ${{ inputs.target == 'local' && '1' || '' }}
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Job 1: Smoke + API tests — run on every push (fast, ~2 min)
-  # ---------------------------------------------------------------------------
-  smoke-and-api:
-    name: Smoke & API Tests
+  quality:
+    name: Lint & type-check
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers (Chromium only for smoke)
-        run: npx playwright install chromium --with-deps
-
-      - name: Run smoke tests
-        run: npx playwright test tests/smoke/ tests/api/ --project=chromium
-
-      - name: Upload smoke test report
-        uses: actions/upload-artifact@v4
-        if: always() # Upload even if tests fail
-        with:
-          name: smoke-report
-          path: playwright-report/
-          retention-days: 7
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
 
   # ---------------------------------------------------------------------------
-  # Job 2: Full E2E suite — run on pull requests (multi-browser, ~10 min)
-  # ---------------------------------------------------------------------------
-  full-suite:
-    name: Full E2E Suite (multi-browser)
+  smoke:
+    name: Smoke + HTTP (chromium)
+    needs: quality
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    needs: smoke-and-api # Only run if smoke tests pass
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install all Playwright browsers
-        run: npx playwright install --with-deps
-
-      - name: Run full test suite
-        run: npx playwright test
-
-      - name: Upload full test report
-        uses: actions/upload-artifact@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build local SauceDemo (target=local only)
+        if: env.LOCAL_SAUCEDEMO == '1'
+        run: npm run saucedemo:setup
+      - name: Run smoke & HTTP tests
+        run: npx playwright test --project=chromium --grep "@smoke|@api"
+      - name: Metrics → job summary
+        if: always()
+        run: node scripts/metrics/print-summary.mjs || true
+      - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: full-report
-          path: playwright-report/
+          name: smoke-report
+          path: |
+            playwright-report/
+            metrics/
+          retention-days: 14
+      - name: Keep traces/videos of failures
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-failure-evidence
+          path: test-results/
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  cross-browser:
+    name: Full suite (${{ matrix.browser }})
+    needs: smoke
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Build local SauceDemo (target=local only)
+        if: env.LOCAL_SAUCEDEMO == '1'
+        run: npm run saucedemo:setup
+      - name: Run tests
+        run: >
+          npx playwright test --project=${{ matrix.browser }} --reporter=blob
+          ${{ matrix.browser != 'chromium' && '--grep-invert @chromium-only' || '' }}
+          ${{ inputs.grep && format('--grep "{0}"', inputs.grep) || '' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: blob-${{ matrix.browser }}
+          path: blob-report/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: failure-evidence-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  report:
+    name: Merge HTML report
+    needs: cross-browser
+    if: always() && needs.cross-browser.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          path: all-blobs
+          pattern: blob-*
+          merge-multiple: true
+      - run: npx playwright merge-reports --reporter html,junit ./all-blobs
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: junit.xml
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cross-browser-report
+          path: |
+            playwright-report/
+            junit.xml
           retention-days: 14

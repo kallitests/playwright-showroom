@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Playwright outputs
+playwright-report/
+playwright-report-toolshop/
+test-results/
+test-results-toolshop/
+blob-report/
+playwright/.cache/
+
+# QA metrics (generated each run; CI keeps them as artifacts)
+metrics/
+metrics-toolshop/
+
+# Local build of the SauceDemo sources (npm run saucedemo:setup)
+.local-saucedemo/
+
+# Secrets / local config
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Playwright MCP session output
+mcp-output/

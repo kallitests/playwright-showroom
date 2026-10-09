@@ -1,104 +1,83 @@
 // =============================================================================
-// pages/InventoryPage.ts — Page Object Model for the product list page
+// pages/InventoryPage.ts — Product list (/inventory.html)
 // =============================================================================
 
-import { Page, Locator, expect } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
+import { Header } from './components/Header';
+import { parsePrice } from '../utils/helpers';
+import { ROUTES, type ProductName } from '../utils/test-data';
+
+export type SortOption = 'az' | 'za' | 'lohi' | 'hilo';
 
 export class InventoryPage {
-  readonly page: Page;
-
-  // The container for all product cards
+  readonly header: Header;
   readonly inventoryList: Locator;
-
-  // The sort dropdown in the top-right corner
+  readonly items: Locator;
+  readonly itemNames: Locator;
+  readonly itemPrices: Locator;
   readonly sortDropdown: Locator;
+  readonly activeSortOption: Locator;
 
-  // The cart icon with the item count badge
-  readonly cartIcon: Locator;
-
-  // The badge showing the number of items in cart
-  readonly cartBadge: Locator;
-
-  // The hamburger menu button (top-left)
-  readonly menuButton: Locator;
-
-  // The "Logout" option inside the hamburger menu
-  readonly logoutLink: Locator;
-
-  constructor(page: Page) {
-    this.page = page;
-    this.inventoryList = page.locator('.inventory_list');
-    this.sortDropdown = page.locator('[data-test="product-sort-container"]');
-    this.cartIcon = page.locator('.shopping_cart_link');
-    this.cartBadge = page.locator('.shopping_cart_badge');
-    this.menuButton = page.locator('#react-burger-menu-btn');
-    this.logoutLink = page.locator('#logout_sidebar_link');
+  constructor(readonly page: Page) {
+    this.header = new Header(page);
+    this.inventoryList = page.getByTestId('inventory-list');
+    this.items = page.getByTestId('inventory-item');
+    this.itemNames = page.getByTestId('inventory-item-name');
+    this.itemPrices = page.getByTestId('inventory-item-price');
+    this.sortDropdown = page.getByTestId('product-sort-container');
+    this.activeSortOption = page.getByTestId('active-option');
   }
 
-  // Navigate directly to the inventory page
   async goto(): Promise<void> {
-    await this.page.goto('/inventory.html');
+    await this.page.goto(ROUTES.inventory);
+    await this.expectLoaded();
   }
 
-  // Returns all product name elements on the page
-  getAllProductNames(): Locator {
-    return this.page.locator('.inventory_item_name');
-  }
-
-  // Returns all product price elements on the page
-  getAllProductPrices(): Locator {
-    return this.page.locator('.inventory_item_price');
-  }
-
-  // Adds a product to cart by its name
-  async addToCart(productName: string): Promise<void> {
-    const item = this.page
-      .locator('.inventory_item')
-      .filter({ hasText: productName });
-
-    // The Add to cart button inside this specific product card
-    await item.locator('button').click();
-  }
-
-  // Removes a product from cart (when it shows "Remove" instead of "Add to cart")
-  async removeFromCart(productName: string): Promise<void> {
-    const item = this.page
-      .locator('.inventory_item')
-      .filter({ hasText: productName });
-    await item.locator('button').click();
-  }
-
-  // Returns the number shown on the cart badge (0 if empty)
-  async getCartCount(): Promise<number> {
-    const isVisible = await this.cartBadge.isVisible();
-    if (!isVisible) return 0;
-    const text = await this.cartBadge.textContent();
-    return parseInt(text ?? '0', 10);
-  }
-
-  // Selects a sort option from the dropdown
-  // Values: 'az', 'za', 'lohi', 'hilo'
-  async sortBy(value: 'az' | 'za' | 'lohi' | 'hilo'): Promise<void> {
-    await this.sortDropdown.selectOption(value);
-  }
-
-  // Clicks the cart icon to navigate to the cart page
-  async goToCart(): Promise<void> {
-    await this.cartIcon.click();
-    await expect(this.page).toHaveURL(/cart/);
-  }
-
-  // Opens the hamburger menu and clicks Logout
-  async logout(): Promise<void> {
-    await this.menuButton.click();
-    // Wait for the menu animation to complete before clicking
-    await this.logoutLink.waitFor({ state: 'visible' });
-    await this.logoutLink.click();
-    await expect(this.page).toHaveURL('/');
-  }
-
-  // Asserts that the page is loaded (inventory list is visible)
   async expectLoaded(): Promise<void> {
     await expect(this.inventoryList).toBeVisible();
+    await expect(this.header.title).toHaveText('Products');
+  }
+
+  /** Product card scoped by its visible name (robust to re-ordering). */
+  item(name: ProductName): Locator {
+    return this.items.filter({ has: this.page.getByTestId('inventory-item-name').getByText(name, { exact: true }) });
+  }
+
+  async addToCart(name: ProductName): Promise<void> {
+    await this.item(name).getByRole('button', { name: 'Add to cart' }).click();
+  }
+
+  async removeFromCart(name: ProductName): Promise<void> {
+    await this.item(name).getByRole('button', { name: 'Remove' }).click();
+  }
+
+  async openProduct(name: ProductName): Promise<void> {
+    await this.item(name).getByTestId('inventory-item-name').click();
+    await expect(this.page).toHaveURL(/inventory-item\.html\?id=\d+/);
+  }
+
+  async sortBy(option: SortOption): Promise<void> {
+    await this.sortDropdown.selectOption(option);
+  }
+
+  async names(): Promise<string[]> {
+    return this.itemNames.allTextContents();
+  }
+
+  async prices(): Promise<number[]> {
+    return (await this.itemPrices.allTextContents()).map(parsePrice);
+  }
+
+  // ---- v1 compatibility helpers ------------------------------------------
+  getAllProductNames(): Locator {
+    return this.itemNames;
+  }
+
+  getAllProductPrices(): Locator {
+    return this.itemPrices;
+  }
+
+  async goToCart(): Promise<void> {
+    await this.header.openCart();
   }
 }
